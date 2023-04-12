@@ -37,7 +37,7 @@ Et voici un exemple de code pour styliser un paragraphe en utilisant Markdown:
 Pour installer le projet, vous devez cloner le référentiel et installer les dépendances en utilisant les commandes suivantes:
 
 ```bash
-git clone <lien du référentiel>
+git clone git@github.com:Bit-Scripts/MarvWeb.git
 cd MarvWeb
 npm install
 ```

@@ -1,0 +1,26 @@
+{
+  "name": "marvweb",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "@google-cloud/text-to-speech": "^4.2.1",
+    "child_process": "^1.0.2",
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "express": "^4.18.2",
+    "fs": "^0.0.1-security",
+    "http-errors": "~1.6.3",
+    "jade": "^1.9.2",
+    "morgan": "~1.9.1",
+    "mpg123-static": "^1.0.4",
+    "node-mp3-player": "^1.0.3",
+    "openai": "^3.2.1",
+    "path": "^0.12.7",
+    "socket.io": "^4.6.1",
+    "use": "^3.1.1",
+    "util": "^0.12.5"
+  }
+}

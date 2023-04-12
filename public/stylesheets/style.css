@@ -1,0 +1,66 @@
+body {
+    padding:0;
+    margin:0;
+    background: lightblue url('../images/computing.jpeg') no-repeat fixed center;
+    background-size: cover;
+font-family: sans-serif;
+}
+
+button {
+    width: 200px;
+    height: 100px;
+    bottom: 0;
+    transform: translateY(10vh);
+    margin: 50px;
+    text-decoration-line: line-through;
+}
+
+h1 {
+color: white;
+}
+
+#welcome {
+color: white;
+}
+
+#bot {
+    right: 5vw;
+    width: 40vw;
+    height: 40vw;
+    transform: translateX(55vw);
+    position: relative;
+    z-index: 1;
+}
+
+#botbouche {
+    right: 5vw;
+    width: 40vw;
+    height: 40vw;
+    transform: translateX(15vw);
+    position: relative;
+    z-index: 2;
+}
+
+#history {
+    background-color: #fff7;
+    border-radius: 5%;
+    border-color: #000;
+    color: #000;
+    border: solid 5px;
+    width: 40vw;
+    height: 40vw;
+    padding: 1vw;
+    margin-left: 0;
+    margin-right: 60vw;
+    transform: translateY(-48vw);
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+#text-input {
+    transform: translateY(-48vw);
+    width: 39vw;
+    height: 5vw;
+    margin: 15px;
+    font-size: 2.5em;
+}

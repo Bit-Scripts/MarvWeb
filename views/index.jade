@@ -1,0 +1,15 @@
+extends layout
+
+block content
+  h1 WebMarv
+  p(id='welcome') Welcome to WebMarv
+  div(id="containerBot")
+    - var img = "images/botavatar.png"
+    img(src=img id='bot')
+    - var imgbouche = "images/botavatar-bouche.png"
+    img(src=imgbouche id='botbouche')
+  button(type='button', id='talk', onclick='talk()') Speech To Text
+  button(type='button', id='speech', onclick='speech()') Text To Speech
+  textarea(id="history" readonly)
+  textarea(id="text-input" onkeyup="preventMoving(event);")
+  

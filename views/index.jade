@@ -8,8 +8,10 @@ block content
     img(src=img id='bot')
     - var imgbouche = "images/botavatar-bouche.png"
     img(src=imgbouche id='botbouche')
-  button(type='button', id='talk', onclick='talk()') Speech To Text
-  button(type='button', id='speech', onclick='speech()') Text To Speech
+  button(type='button', id='talk', onclick='startButton(event)') 
+    i(class="fa-solid fa-microphone")
+  button(type='button', id='speech', onclick='toggleSynth(event)') 
+    i(class="fa-solid fa-volume-high")
   textarea(id="history" readonly)
   textarea(id="text-input" onkeyup="preventMoving(event);")
   

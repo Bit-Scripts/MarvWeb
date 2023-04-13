@@ -1,16 +1,26 @@
 body {
     padding:0;
     margin:0;
+    height: 100vh;
     background: lightblue url('../images/computing.jpeg') no-repeat fixed center;
     background-size: cover;
-font-family: sans-serif;
+    font-family: sans-serif;
 }
 
-button {
+#talk {
+    transform: translateX(50px);
     width: 200px;
     height: 100px;
     bottom: 0;
-    transform: translateY(10vh);
+    margin: 50px;
+    text-decoration-line: line-through;
+}
+
+#speech {
+    transform: translateX(150px);
+    width: 200px;
+    height: 100px;
+    bottom: 0;
     margin: 50px;
     text-decoration-line: line-through;
 }
@@ -48,19 +58,19 @@ color: white;
     color: #000;
     border: solid 5px;
     width: 40vw;
-    height: 40vw;
+    height: 60vh;
     padding: 1vw;
     margin-left: 0;
     margin-right: 60vw;
-    transform: translateY(-48vw);
+    transform: translateY(calc(-40vw - 23vh));
     font-size: 1.5em;
     font-weight: bold;
 }
 
 #text-input {
-    transform: translateY(-48vw);
-    width: 39vw;
-    height: 5vw;
+    transform: translateY(calc(-40vw - 23vh));
+    width: 40vw;
+    height: 10vh;
     margin: 15px;
     font-size: 2.5em;
 }

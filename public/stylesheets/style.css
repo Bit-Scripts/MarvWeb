@@ -2,10 +2,11 @@ body {
     padding:0;
     margin:0;
     height: 100vh;
+    width: 100vw;
     background: lightblue url('../images/computing.jpeg') no-repeat fixed center;
     background-size: cover;
     font-family: sans-serif;
-    overflow: none;
+    overflow: hidden;
 }
 
 #talk {
@@ -67,13 +68,16 @@ color: white;
     color: #000;
     border: solid 5px;
     width: 40vw;
-    height: 60vh;
+    height: min(35em, 60vh);
     padding: 1vw;
     margin-left: 0;
     margin-right: 60vw;
     transform: translateY(calc(-40vw));
     font-size: 1.5em;
     font-weight: bold;
+    overflow-x: hidden;
+    overflow-y: auto;
+    resize: none;
 }
 
 #text-input {

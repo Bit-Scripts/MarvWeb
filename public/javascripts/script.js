@@ -67,16 +67,19 @@ const startButton = (event) => {
     start_timestamp = event.timeStamp;
 
     recognition.onresult = (event) => {
+        const history = document.getElementById("history");
         if(event.isTrusted) {
             const current = event.resultIndex;
-            const transcript = event.results[current][0].transcript;
+            const transcript = event.results[current][0].transcript.replace('Marc', 'Marv');
             const mobileRepeatBug = (current == 1 && transcript == event.results[0][0].transcript);
             if(!mobileRepeatBug) {
-                const history = document.getElementById("history");
                 history.innerHTML += "\n_____________________________________________"
                 history.innerHTML += "\n\nUser : " + transcript;
                 socket.emit('marv', transcript);
             }
+        }
+        if (history.selectionStart == history.selectionEnd) {
+            history.scrollTop = history.scrollHeight;
         }
     };
 
@@ -160,17 +163,20 @@ const talk = (speak) => {
 const preventMoving = (event) => {
     // Get the input field
     let input = document.getElementById("text-input");
+    const history = document.getElementById("history");
     // If the user presses the "Enter" key on the keyboard
     if (event.key === "Enter") {
         // Cancel the default action, if needed
         event.preventDefault();
         // Quelque chose à faire avec l'event
         console.log(input.value);
-        const history = document.getElementById("history");
         history.innerHTML += "\n_____________________________________________"
         history.innerHTML += "\n\nUser : " + input.value;
         socket.emit('marv', input.value);   
         input.value = "";
+    }
+    if (history.selectionStart == history.selectionEnd) {
+        history.scrollTop = history.scrollHeight;
     }
 };
 

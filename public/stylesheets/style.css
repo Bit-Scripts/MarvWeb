@@ -87,3 +87,13 @@ color: white;
     margin: 15px;
     font-size: 2.5em;
 }
+
+#copyright {
+    position: fixed;
+    bottom: 0;
+    margin-left: 37vw;
+    margin-right: 43vw;
+    color: bisque;
+    font-weight: bold;
+    text-align: center
+}

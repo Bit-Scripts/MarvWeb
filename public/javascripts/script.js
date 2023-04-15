@@ -40,8 +40,8 @@ const voicesLoader = new Promise((resolve, reject) => {
     }
 });
 
-const SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
-const SpeechGrammarList = window.SpeechGrammarList || webkitSpeechGrammarList;
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 
 let activeRecognition = false;
 
@@ -61,7 +61,7 @@ const startButton = (event) => {
         return;
     }
 
-    
+
     ignore_onend = false;
 
     start_timestamp = event.timeStamp;
@@ -117,10 +117,10 @@ const syntheseVocale = text => {
             toSpeak.addEventListener("end", () => {
                 resolve();
             });
-            
+
             synth.speak(toSpeak);
             talk(true);
-    
+
             toSpeak.onend = (event) => {
                 console.log(event)
                 talk(false);
@@ -172,7 +172,7 @@ const preventMoving = (event) => {
         console.log(input.value);
         history.innerHTML += "\n_____________________________________________"
         history.innerHTML += "\n\nUser : " + input.value;
-        socket.emit('marv', input.value);   
+        socket.emit('marv', input.value);
         input.value = "";
     }
     if (history.selectionStart == history.selectionEnd) {

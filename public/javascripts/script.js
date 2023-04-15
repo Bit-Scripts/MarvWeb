@@ -79,7 +79,7 @@ const startButton = (event) => {
             }
         }
         if (history.selectionStart == history.selectionEnd) {
-            history.scrollTop = history.scrollHeight;
+            history.scrollBottom = history.scrollHeight;
         }
     };
 
@@ -176,7 +176,7 @@ const preventMoving = (event) => {
         input.value = "";
     }
     if (history.selectionStart == history.selectionEnd) {
-        history.scrollTop = history.scrollHeight;
+        history.scrollBottom = history.scrollHeight;
     }
 };
 

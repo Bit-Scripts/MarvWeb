@@ -3,6 +3,8 @@ extends layout
 block content
   p(id="disclaimer") Pour avoir la meilleure expérience possible, nous vous recommandons d'utiliser Google Chrome, en particulier la version pour Windows 
   h1 Marv Bot
+  script(type='text/javascript').
+    verif(`#{ip}`)
   p(id='welcome') Welcome to Marv Bot
   div(id="containerBot")
     - var img = "images/botavatar.png"

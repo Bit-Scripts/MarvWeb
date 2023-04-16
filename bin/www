@@ -9,6 +9,10 @@ var app = require('../app');
 var debug = require('debug')('apptest:server');
 var http = require('http');
 const { Server } = require('socket.io');
+var token = require('../routes/index.js');
+var tokenOrig = token;
+const fs = require("fs");
+const database = require('../db.js');
 
 /**
  * Get port from environment and store in Express.
@@ -26,10 +30,22 @@ const io = new Server(server);
 
 io.on("connection", (socket) => {
   socket.on('marv', async (arg) => {
-    console.log(arg);
-    const response = await Marv(arg);
-    console.log(response);
-    io.to(socket.id).emit('marv', response);
+    console.log(arg.ip);
+    console.log(arg.message);
+    var ip = arg.ip;
+    db = database.createDbConnection();
+    db.serialize(() => {
+      db.each(`SELECT token FROM authentification WHERE ip="${ip}"`, (error, token) => {
+        console.log(token);
+      });
+    });
+    db.close();
+    console.log("token from back = " + token);
+    if(token === tokenOrig) {
+      const response = await Marv(arg.message);
+      console.log(response);
+      io.to(socket.id).emit('marv', response);
+    }
   })
 });
 

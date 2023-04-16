@@ -3,6 +3,12 @@ let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
 let authorizeToSpeak = false;
+let ip = "";
+
+const verif = (ip) => {
+    console.log(`ip : ${ip}\n`);
+    ip = ip;
+}
 
 showdown.extension('codehighlight', () => {
     const htmlunencode = (text) => {
@@ -113,7 +119,7 @@ const startButton = (event) => {
                 converter.setFlavor('github');
                 history.innerHTML += "<br/><br/>User : ";
                 history.innerHTML += html;
-                socket.emit('marv', transcript);
+                socket.emit('marv', { ip : ip, message : transcript });
             }
         }
         if (history.selectionStart == history.selectionEnd) {
@@ -182,10 +188,6 @@ const toggleSynth = (event) => {
     }
 }
 
-
-
-
-
 const talk = (speak) => {
     console.log("speak " + speak);
     if (speak)  {
@@ -218,7 +220,7 @@ const sendMessage = () => {
     converter.setFlavor('github');
     history.innerHTML += "<br/><br/>User : ";
     history.innerHTML += html;
-    socket.emit('marv', input.value);
+    socket.emit('marv', { ip : ip, message : input.value });
     input.value = "";
     if (history.selectionStart == history.selectionEnd) {
         history.scrollBottom = history.scrollHeight;

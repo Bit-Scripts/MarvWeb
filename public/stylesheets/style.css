@@ -12,35 +12,41 @@ body {
 #talk {
     position: absolute;
     transform: translateX(20vw);
-    width: 10vw;
-    height: 50px;
+    width: 5vw;
+    height: 5vw;
+    top: 0;
     bottom: 0;
     margin: 25px;
-    bottom: 0;
     text-decoration-line: line-through;
     z-index: 5;
-    background-color: #f00;
+    background-color: #700;
+    font-size: 1.5em;
+    border-radius: 50%
 }
 
 #speech {
     position: absolute;
-    transform: translateX(60vw);
-    width: 10vw;
-    height: 50px;
+    transform: translateX(26vw);
+    width: 5vw;
+    height: 5vw;
+    top: 0;
     bottom: 0;
     margin: 25px;
-    bottom: 0;
     text-decoration-line: line-through;
     z-index: 5;
-    background-color: #f00;
+    background-color: #700;
+    font-size: 1.5em;
+    border-radius: 50%
 }
 
 h1 {
 color: white;
+text-shadow: #FC0 1px 0 10px;
 }
 
 #welcome {
 color: white;
+text-shadow: #FC0 1px 0 10px;
 }
 
 #bot {
@@ -78,14 +84,37 @@ color: white;
     overflow-x: hidden;
     overflow-y: auto;
     resize: none;
+    scroll-behavior: smooth;
+}
+
+#messageSend {
+    display: flex;
+    flex-direction: row;
+    width: 40vw;
+    height: 10vh;
+    margin: 15px;
+    margin-bottom: 50px;
 }
 
 #text-input {
     transform: translateY(calc(-40vw));
-    width: 40vw;
+    width: 50vw;
     height: 10vh;
     margin: 15px;
     font-size: 2.5em;
+    border-radius: 20px;
+}
+
+#send { 
+    transform: translateY(calc(-40vw));
+    background-color: #0707;
+    color: black;
+    width: 15vw;
+    margin-left: 30vw;
+    height: 10vh;
+    margin: 15px;
+    font-size: 1.5em;
+    border-radius: 10%;
 }
 
 #copyright {
@@ -93,7 +122,19 @@ color: white;
     bottom: 0;
     margin-left: 37vw;
     margin-right: 43vw;
-    color: bisque;
+    color:bisque;
     font-weight: bold;
     text-align: center
+}
+
+#disclaimer {
+    position: fixed;
+    text-align: justify;
+    font-weight: bold;
+    z-index: 25;
+    right: 10px;
+    top: -10px;
+    margin-left: 75vw;
+    color: bisque;
+    text-shadow: #FC0 1px 0 10px;
 }

@@ -1,8 +1,9 @@
 extends layout
 
 block content
-  h1 WebMarv
-  p(id='welcome') Welcome to WebMarv
+  p(id="disclaimer") Pour avoir la meilleure expérience possible, nous vous recommandons d'utiliser Google Chrome, en particulier la version pour Windows 
+  h1 Marv Bot
+  p(id='welcome') Welcome to Marv Bot
   div(id="containerBot")
     - var img = "images/botavatar.png"
     img(src=img id='bot')
@@ -12,6 +13,9 @@ block content
     i(class="fa-solid fa-microphone")
   button(type='button', id='speech', onclick='toggleSynth(event)') 
     i(class="fa-solid fa-volume-high")
-  textarea(id="history" readonly)
-  textarea(id="text-input" onkeyup="preventMoving(event);" placeholder="Posez-votre question ici... ?")
+  textarea(id="history"  markdown="1" readonly)
+  div(id='messageSend')
+    textarea(id="text-input" onkeyup="preventMoving(event)" placeholder="Posez-votre question ici... ?")
+    button(type='button' id='send' onclick='sendMessage()')
+      i(class='fa-solid fa-paper-plane')
   p(id="copyright") © Paul WOISARD (Paullux) 2023 - Tous droits réservés - All rights reserved

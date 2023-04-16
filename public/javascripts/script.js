@@ -54,10 +54,10 @@ const startButton = (event) => {
     recognition.start();
     const talk = document.getElementById('talk');
     if (activeRecognition) {
-        talk.style.backgroundColor = '#fff';
+        talk.style.backgroundColor = '#0707';
     } else {
         recognition.stop();
-        talk.style.backgroundColor = '#f00';
+        talk.style.backgroundColor = '#700';
         return;
     }
 
@@ -86,19 +86,19 @@ const startButton = (event) => {
     recognition.onend = () => {
         recognition.start();
         activeRecognition = true;
-        talk.style.backgroundColor = '#fff';
+        talk.style.backgroundColor = '#0707';
     }
 
     recognition.onspeechend = async () => {
         recognition.stop();
         activeRecognition = false;
-        talk.style.backgroundColor = '#f00';
+        talk.style.backgroundColor = '#700';
     }
 
     recognition.onerror = async (event) => {
         recognition.stop();
         activeRecognition = false;
-        talk.style.backgroundColor = '#f00';
+        talk.style.backgroundColor = '#700';
     }
 }
 
@@ -134,11 +134,11 @@ const toggleSynth = (event) => {
     if (authorizeToSpeak) {
         synth.cancel();
         talk(false);
-        speech.style.backgroundColor = '#f00';
+        speech.style.backgroundColor = '#700';
         authorizeToSpeak = false;
         return;
     } else {
-        speech.style.backgroundColor = '#fff';
+        speech.style.backgroundColor = '#0707';
         authorizeToSpeak = true;
         return;
     }
@@ -157,28 +157,27 @@ const talk = (speak) => {
     }
 }
 
-
-
 // Execute a function when the user presses a key on the keyboard
-const preventMoving = (event) => {
+const preventMoving = (event) => { 
+    // If the user presses the "Enter" key on the keyboard
+    if (event.key === "Enter") {
+        sendMessage();
+        // Cancel the default action, if needed
+        event.preventDefault();
+    } 
+};
+
+const sendMessage = () => {
     // Get the input field
     let input = document.getElementById("text-input");
     const history = document.getElementById("history");
-    // If the user presses the "Enter" key on the keyboard
-    if (event.key === "Enter") {
-        // Cancel the default action, if needed
-        event.preventDefault();
-        // Quelque chose à faire avec l'event
-        console.log(input.value);
-        history.innerHTML += "\n_____________________________________________"
-        history.innerHTML += "\n\nUser : " + input.value;
-        socket.emit('marv', input.value);
-        input.value = "";
-    }
+
+    console.log(input.value);
+    history.innerHTML += "\n_____________________________________________";
+    history.innerHTML += "\n\nUser : " + input.value;
+    socket.emit('marv', input.value);
+    input.value = "";
     if (history.selectionStart == history.selectionEnd) {
         history.scrollBottom = history.scrollHeight;
     }
 };
-
-
-

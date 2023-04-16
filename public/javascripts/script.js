@@ -7,7 +7,12 @@ let authorizeToSpeak = false;
 socket.on('marv', receive => {
     console.log(receive);
     const history = document.getElementById("history");
-    history.innerHTML += "\nMarv : " + receive;
+    const converter = new showdown.Converter(),
+    text      = receive,
+    html      = converter.makeHtml(text);
+    converter.setFlavor('github');
+    history.innerHTML += "\nMarv : ";
+    history.innerHTML += html;
     syntheseVocale(receive);
 })
 
@@ -74,7 +79,12 @@ const startButton = (event) => {
             const mobileRepeatBug = (current == 1 && transcript == event.results[0][0].transcript);
             if(!mobileRepeatBug) {
                 history.innerHTML += "\n_____________________________________________"
-                history.innerHTML += "\n\nUser : " + transcript;
+                const converter = new showdown.Converter(),
+                text      = transcript,
+                html      = converter.makeHtml(text);
+                converter.setFlavor('github');
+                history.innerHTML += "\n\nUser : ";
+                history.innerHTML += html;
                 socket.emit('marv', transcript);
             }
         }
@@ -174,7 +184,12 @@ const sendMessage = () => {
 
     console.log(input.value);
     history.innerHTML += "\n_____________________________________________";
-    history.innerHTML += "\n\nUser : " + input.value;
+    const converter = new showdown.Converter(),
+    text      = input.value,
+    html      = converter.makeHtml(text);
+    converter.setFlavor('github');
+    history.innerHTML += "\n\nUser : ";
+    history.innerHTML += html;
     socket.emit('marv', input.value);
     input.value = "";
     if (history.selectionStart == history.selectionEnd) {

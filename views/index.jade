@@ -13,7 +13,7 @@ block content
     i(class="fa-solid fa-microphone")
   button(type='button', id='speech', onclick='toggleSynth(event)') 
     i(class="fa-solid fa-volume-high")
-  textarea(id="history"  markdown="1" readonly)
+  div(id="history"  markdown="1" class="language-html")
   div(id='messageSend')
     textarea(id="text-input" onkeyup="preventMoving(event)" placeholder="Posez-votre question ici... ?")
     button(type='button' id='send' onclick='sendMessage()')

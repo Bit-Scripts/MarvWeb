@@ -4,14 +4,42 @@ let voice = undefined;
 const synth = window.speechSynthesis;
 let authorizeToSpeak = false;
 
+showdown.extension('codehighlight', () => {
+    const htmlunencode = (text) => {
+      return (
+        text
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+        );
+    }
+    return [
+      {
+        type: 'output',
+        filter: (text, converter, options) => {
+          // use new shodown's regexp engine to conditionally parse codeblocks
+          const left  = '<pre><code\\b[^>]*>',
+              right = '</code></pre>',
+              flags = 'g',
+              replacement = function (wholeMatch, match, left, right) {
+                // unescape match to prevent double escaping
+                match = htmlunencode(match);
+                return left + hljs.highlightAuto(match).value + right;
+              };
+          return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
+        }
+      }
+    ];
+  });
+
 socket.on('marv', receive => {
     console.log(receive);
     const history = document.getElementById("history");
-    const converter = new showdown.Converter(),
+    const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
     text      = receive,
     html      = converter.makeHtml(text);
     converter.setFlavor('github');
-    history.innerHTML += "\nMarv : ";
+    history.innerHTML += "<br/>Marv : ";
     history.innerHTML += html;
     syntheseVocale(receive);
 })
@@ -78,12 +106,12 @@ const startButton = (event) => {
             const transcript = event.results[current][0].transcript.replace('Marc', 'Marv');
             const mobileRepeatBug = (current == 1 && transcript == event.results[0][0].transcript);
             if(!mobileRepeatBug) {
-                history.innerHTML += "\n_____________________________________________"
-                const converter = new showdown.Converter(),
+                history.innerHTML += "<br/>__________________________________________________________"
+                const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
                 text      = transcript,
                 html      = converter.makeHtml(text);
                 converter.setFlavor('github');
-                history.innerHTML += "\n\nUser : ";
+                history.innerHTML += "<br/><br/>User : ";
                 history.innerHTML += html;
                 socket.emit('marv', transcript);
             }
@@ -183,12 +211,12 @@ const sendMessage = () => {
     const history = document.getElementById("history");
 
     console.log(input.value);
-    history.innerHTML += "\n_____________________________________________";
-    const converter = new showdown.Converter(),
+    history.innerHTML += "<br/>__________________________________________________________";
+    const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
     text      = input.value,
     html      = converter.makeHtml(text);
     converter.setFlavor('github');
-    history.innerHTML += "\n\nUser : ";
+    history.innerHTML += "<br/><br/>User : ";
     history.innerHTML += html;
     socket.emit('marv', input.value);
     input.value = "";

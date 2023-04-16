@@ -73,7 +73,7 @@ text-shadow: #FC0 1px 0 10px;
     border-color: #000;
     /*color: #000;*/
     border: solid 5px;
-    width: 40vw;
+    width: 45vw;
     height: min(35em, 60vh);
     padding: 1vw;
     margin-left: 0;
@@ -90,7 +90,7 @@ text-shadow: #FC0 1px 0 10px;
 #messageSend {
     display: flex;
     flex-direction: row;
-    width: 40vw;
+    width: 46vw;
     height: 10vh;
     margin: 15px;
     margin-bottom: 50px;
@@ -98,7 +98,7 @@ text-shadow: #FC0 1px 0 10px;
 
 #text-input {
     transform: translateY(calc(-40vw));
-    width: 50vw;
+    width: 70vw;
     height: 10vh;
     margin: 15px;
     font-size: 2.5em;
@@ -109,7 +109,7 @@ text-shadow: #FC0 1px 0 10px;
     transform: translateY(calc(-40vw));
     background-color: #0707;
     color: black;
-    width: 15vw;
+    width: 25vw;
     margin-left: 30vw;
     height: 10vh;
     margin: 15px;
@@ -137,4 +137,9 @@ text-shadow: #FC0 1px 0 10px;
     margin-left: 75vw;
     color: bisque;
     text-shadow: #FC0 1px 0 10px;
+}
+
+pre {
+    background-color: #8c929d;
+    word-break: break-word;
 }

@@ -12,8 +12,8 @@ body {
 #talk {
     position: absolute;
     transform: translateX(20vw);
-    width: 5vw;
-    height: 5vw;
+    width: 80px;
+    height: 80px;
     top: 0;
     bottom: 0;
     margin: 25px;
@@ -27,8 +27,8 @@ body {
 #speech {
     position: absolute;
     transform: translateX(26vw);
-    width: 5vw;
-    height: 5vw;
+    width: 80px;
+    height: 80px;
     top: 0;
     bottom: 0;
     margin: 25px;
@@ -69,9 +69,8 @@ text-shadow: #FC0 1px 0 10px;
 
 #history {
     background-color: #fff7;
-    border-radius: 5%;
+    border-radius: 10px;
     border-color: #000;
-    /*color: #000;*/
     border: solid 5px;
     width: 45vw;
     height: min(35em, 60vh);
@@ -123,6 +122,7 @@ text-shadow: #FC0 1px 0 10px;
     margin-left: 37vw;
     margin-right: 43vw;
     color:bisque;
+    z-index: 500;
     font-weight: bold;
     text-align: center
 }
@@ -131,7 +131,7 @@ text-shadow: #FC0 1px 0 10px;
     position: fixed;
     text-align: justify;
     font-weight: bold;
-    z-index: 25;
+    z-index: 500;
     right: 10px;
     top: -10px;
     margin-left: 75vw;
@@ -142,4 +142,27 @@ text-shadow: #FC0 1px 0 10px;
 pre {
     background-color: #8c929d;
     word-break: break-word;
+}
+
+div::-ms-overflow-style{
+    display: none;
+}
+
+/* Réduire la hauteur de la barre de défilement */
+div::-webkit-scrollbar {
+    width: 8px;
+    margin-right: 20px;
+    height: calc(min(35em, 60vh) - 8vh);
+}
+  
+div::-webkit-scrollbar-thumb {
+    background: rgba(189, 210, 223, 0.8);
+    border-radius: 10px;
+}
+  
+div::-webkit-scrollbar-track {
+    border-radius: 10px;
+    opacity: 0.65;
+    border: 2px solid #000;
+    background: rgba(30, 53, 62, 0.8) !important;
 }

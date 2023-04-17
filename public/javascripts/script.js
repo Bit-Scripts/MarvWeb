@@ -6,7 +6,6 @@ let authorizeToSpeak = false;
 let ip = "";
 
 const verif = (ip) => {
-    console.log(`ip : ${ip}\n`);
     ip = ip;
 }
 

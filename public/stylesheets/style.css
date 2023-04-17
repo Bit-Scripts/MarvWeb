@@ -26,7 +26,7 @@ body {
 
 #speech {
     position: absolute;
-    transform: translateX(26vw);
+    transform: translateX(calc(20vw + 90px));
     width: 80px;
     height: 80px;
     top: 0;

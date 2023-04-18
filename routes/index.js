@@ -12,7 +12,7 @@ router.get('/', function(req, res, next) {
   token = crypto.randomBytes(64).toString('hex');
   db = database.createDbConnection();
   db.serialize(() => {
-    const stmt = db.prepare("INSERT INTO authentification (ip, token) VALUES (?,?)");
+    const stmt = db.prepare("INSERT OR REPLACE INTO authentification (ip, token) VALUES (?,?)");
     stmt.run(ip, token);
     stmt.finalize();
   });

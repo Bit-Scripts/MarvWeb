@@ -21,7 +21,7 @@ var createDbConnection = () => {
 }
 
 function createTable(db) {
-    db.run("CREATE TABLE IF NOT EXISTS authentification (ID INTEGER PRIMARY KEY AUTOINCREMENT, ip   VARCHAR(255) NOT NULL, token VARCHAR(255) NOT NULL)");
+    db.run("CREATE TABLE IF NOT EXISTS authentification (ID INTEGER PRIMARY KEY AUTOINCREMENT, ip   VARCHAR(255) NOT NULL UNIQUE, token VARCHAR(255) NOT NULL)");
 }
 
 module.exports = { createDbConnection };

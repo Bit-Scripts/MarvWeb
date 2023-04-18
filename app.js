@@ -1,3 +1,4 @@
+var cloudflare = require('cloudflare-express');
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -13,6 +14,7 @@ var app = express();
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
+app.set('trust proxy', 'loopback' );
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -20,6 +22,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(cloudflare.restore());
+app.use(cloudflare.restore({update_on_start:true}))
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);

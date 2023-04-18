@@ -6,9 +6,12 @@ var database = require("../db");
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  var ip = req.headers['CF-Connecting-IP'] || req.socket.remoteAddress;
+  //var ip = req.headers['cf-connecting-ip'] || req.socket.remoteAddress;
+  //var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  //var ip = req.ip;
+  var ip = req.headers['x-real-ip'] || req.connection.remoteAddress;
   res.header("Access-Control-Allow-Origin", ip);
-  var ip = crypto.createHash('sha1').update(ip).digest('base64');
+  ip = crypto.createHash('sha1').update(ip).digest('base64');
   token = crypto.randomBytes(64).toString('hex');
   db = database.createDbConnection();
   db.serialize(() => {

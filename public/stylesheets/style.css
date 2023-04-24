@@ -68,7 +68,8 @@ text-shadow: #FC0 1px 0 10px;
 }
 
 #history {
-    background-color: #fff7;
+    background-color: #fffd;
+    backdrop-filter: blur(15px);
     border-radius: 10px;
     border-color: #000;
     border: solid 5px;
@@ -106,21 +107,23 @@ text-shadow: #FC0 1px 0 10px;
 
 #send { 
     transform: translateY(calc(-40vw));
-    background-color: #0707;
+    background-color: #070D;
+    backdrop-filter: blur(5px);
     color: black;
     width: 25vw;
     margin-left: 30vw;
     height: 10vh;
     margin: 15px;
     font-size: 1.5em;
-    border-radius: 10%;
+    border-radius: 20px;
 }
 
 #copyright {
     position: fixed;
     bottom: 0;
-    margin-left: 37vw;
-    margin-right: 43vw;
+    right: 0;
+    margin-right: 1vw;
+    margin-left: 80vw;
     color:bisque;
     z-index: 500;
     font-weight: bold;

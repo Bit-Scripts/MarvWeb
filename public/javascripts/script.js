@@ -3,11 +3,6 @@ let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
 let authorizeToSpeak = false;
-let ip = "";
-
-const verif = (ip) => {
-    ip = ip;
-}
 
 showdown.extension('codehighlight', () => {
     const htmlunencode = (text) => {
@@ -38,7 +33,6 @@ showdown.extension('codehighlight', () => {
   });
 
 socket.on('marv', receive => {
-    console.log(receive);
     const history = document.getElementById("history");
     const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
     text      = receive,
@@ -86,7 +80,6 @@ let activeRecognition = false;
 const startButton = (event) => {
     activeRecognition = !activeRecognition;
     recognition = new SpeechRecognition();
-    console.log(event);
     recognition = new SpeechRecognition();
     recognition.lang = "fr-FR";
     recognition.start();
@@ -105,6 +98,9 @@ const startButton = (event) => {
     start_timestamp = event.timeStamp;
 
     recognition.onresult = (event) => {
+        const ipString = document.getElementById("ip");
+        let ip = ipString.innerHTML.replace("`", "").replace("`", "");
+
         const history = document.getElementById("history");
         if(event.isTrusted) {
             const current = event.resultIndex;
@@ -165,7 +161,6 @@ const syntheseVocale = text => {
             talk(true);
 
             toSpeak.onend = (event) => {
-                console.log(event)
                 talk(false);
             };
         });
@@ -188,7 +183,6 @@ const toggleSynth = (event) => {
 }
 
 const talk = (speak) => {
-    console.log("speak " + speak);
     if (speak)  {
         document.getElementById('bot').src = 'images/botavatar.gif';
     } else {
@@ -211,7 +205,6 @@ const sendMessage = () => {
     let input = document.getElementById("text-input");
     const history = document.getElementById("history");
 
-    console.log(input.value);
     history.innerHTML += "<br/>__________________________________________________________";
     const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
     text      = input.value,
@@ -219,6 +212,10 @@ const sendMessage = () => {
     converter.setFlavor('github');
     history.innerHTML += "<br/><br/>User : ";
     history.innerHTML += html;
+
+    const ipString = document.getElementById("ip");
+    let ip = ipString.innerHTML.replace("`", "").replace("`", "");
+
     socket.emit('marv', { ip : ip, message : input.value });
     input.value = "";
     if (history.selectionStart == history.selectionEnd) {

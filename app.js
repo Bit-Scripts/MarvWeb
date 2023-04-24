@@ -8,6 +8,7 @@ var favicon = require('serve-favicon');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
+const { router, getToken } = require('./routes/index');
 
 var app = express();
 
@@ -25,8 +26,9 @@ app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(cloudflare.restore());
 app.use(cloudflare.restore({update_on_start:true}))
 
-app.use('/', indexRouter);
+app.use('/', router);
 app.use('/users', usersRouter);
+app.get('/get-token', getToken);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

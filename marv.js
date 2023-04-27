@@ -56,8 +56,10 @@ const setWeatherInformation = async (ville) => {
 }
 
 const MatchFunc = (question, regExp) => {
-    let ville = 'Tours';
-    const match = question.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/gi, '').replace(/\s/g, '-').replace(/_/g, '-').toLowerCase().match(regExp);
+    let ville;
+    const questionRetravailler = question.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/gi, '').replace(/\s/g, '-').replace(/_/g, '-').toLowerCase();
+    console.log(questionRetravailler);
+    const match = questionRetravailler.match(regExp);
     console.log('m = ' + match);
     if (match && match.length > 1) {
         ville = match[1].replace('-',' ').replace(/-+$/g, ''); //.replace(/^\w/, c => c.toUpperCase()).replace('Washington dc', 'Washington DC');
@@ -71,33 +73,33 @@ const Marv = async (question) => new Promise(async(resolve, reject) => {
 	console.log(question);
 
 
-    let regExp1 = /^meteo-a-([\w\s-]+)$/i;
-    let regExp2 = /^quel-est-la-meteo-a-([\w\s-]+)$/i;
-    let regExp3 = /^quel-temps-fait-il-a-([\w\s-]+)$/i;
-    let regExp4 = /^quelle-est-l'heure-a-([\w\s-]+)$/i;
-    let regExp5 = /^quelle-heure-est-il-a-([\w\s-]+)$/i;
-    let regExp6 = /^quelle-heure-a-([\w\s-]+)$/i;
-    let regExp7 = /^heure-a-([\w\s-]+)$/i;
+    let regExp =  [
+        /^meteo-a-([\w\s-]+)$/i,
+        /^quelle-est-la-meteo-a-([\w\s-]+)$/i,
+        /^quel-temps-fait-il-a-([\w\s-]+)$/i,
+        /^quelle-est-lheure-a-([\w\s-]+)$/i,
+        /^quelle-heure-est-il-a-([\w\s-]+)$/i,
+        /^quelle-heure-a-([\w\s-]+)$/i,
+        /^heure-a-([\w\s-]+)$/i
+    ];
 
-    let ville = ((MatchFunc(question, regExp1).toLocaleLowerCase() !== "tours") ? MatchFunc(question, regExp1) : "") || 
-                ((MatchFunc(question, regExp2).toLocaleLowerCase() !== "tours") ? MatchFunc(question, regExp2) : "") || 
-                ((MatchFunc(question, regExp3).toLocaleLowerCase() !== "tours") ? MatchFunc(question, regExp3) : "") || 
-                ((MatchFunc(question, regExp4).toLocaleLowerCase() !== "tours") ? MatchFunc(question, regExp4) : "") || 
-                ((MatchFunc(question, regExp5).toLocaleLowerCase() !== "tours") ? MatchFunc(question, regExp5) : "") || 
-                ((MatchFunc(question, regExp6).toLocaleLowerCase() !== "tours") ? MatchFunc(question, regExp6) : "") || 
-                ((MatchFunc(question, regExp7).toLocaleLowerCase() !== "tours") ? MatchFunc(question, regExp7) : "") ||
-                  "Tours";
+    let ville;
+    for (const regex of regExp) {
+        res = MatchFunc(question, regex);
+        if (res) {
+            ville = res;
+            break;
+        }
+    }
+    
+    let heure;
+    if (ville !== undefined) {
+        await setWeatherInformation(ville.replace(' ','%20'));
+        console.log(DATA.timeZone);  
+        heure = moment.tz(DATA.timeZone).format('HH:mm:ss');
+        console.log(heure);
+    }
 
-
-    //TimezoneTime = VilleFunc(ville).timezone;
-
-    await setWeatherInformation(ville.replace(' ','%20'));
-
-    console.log(DATA.timeZone);
-
-    const heure = moment.tz(DATA.timeZone).format('HH:mm:ss');
-
-    console.log(heure);
 
     const gptResponse = await openai.createChatCompletion({
         model: "gpt-3.5-turbo",

@@ -1,0 +1,15 @@
+:root {
+    --main-bg-color: black;
+    --to-talk-button-bg-color: black;
+    --to-send-button-bg-color: black;
+    --text-shadow: #FFF0;
+    --color-text-title: white;
+    --color-text: white;
+    --color-text-alt: white;
+    --color-bg-history: black;
+    --border-color: white;
+    --cr-and-disclaim: white;
+    --send-text-bg: black;
+    --thumb-bg: black;
+    --scrollbar-track: white;
+}

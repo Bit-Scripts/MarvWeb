@@ -3,6 +3,9 @@ let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
 let authorizeToSpeak = false;
+let normal = true;
+let wb = false;
+let bw = false;
 
 showdown.extension('codehighlight', () => {
     const htmlunencode = (text) => {
@@ -40,6 +43,10 @@ socket.on('marv', receive => {
     converter.setFlavor('github');
     history.innerHTML += "<br/>Marv : ";
     history.innerHTML += html;
+    history.scrollTo({
+        top: history.scrollHeight,
+        behavior: 'smooth'
+    });
     syntheseVocale(receive);
 })
 
@@ -114,7 +121,14 @@ const startButton = (event) => {
                 converter.setFlavor('github');
                 history.innerHTML += "<br/><br/>User : ";
                 history.innerHTML += html;
-                socket.emit('marv', { ip : ip, message : transcript });
+                history.scrollTo({
+                    top: history.scrollHeight,
+                    behavior: 'smooth'
+                });
+                let tzOffset = new Date().getTimezoneOffset(),
+                    tzInput = document.getElementById('tzOffset');
+                tzInput.value = tzOffset*(-1);
+                socket.emit('marv', { ip : ip, message : transcript, tz : tzInput.value });
             }
         }
         if (history.selectionStart == history.selectionEnd) {
@@ -146,7 +160,7 @@ voicesLoader.then(voices => {
     if(!voice) voice = voices.find(el => el.name === "Microsoft Hortense Desktop - French");
 });
 
-const syntheseVocale = text => {
+const syntheseVocale = async text => {
     if (authorizeToSpeak) {
         return new Promise((resolve, reject) => {
             const toSpeak = new SpeechSynthesisUtterance(text);
@@ -183,11 +197,9 @@ const toggleSynth = (event) => {
 }
 
 const talk = (speak) => {
-    if (speak)  {
-        document.getElementById('bot').src = 'images/botavatar.gif';
-    } else {
-        document.getElementById('bot').src = 'images/botavatar.png';
-    }
+    const botAvatar = document.getElementById('bot');
+    botAvatar.src = speak ? 'images/botavatar.gif' : 'images/botavatar.png';
+    botAvatar.style.filter = speak ? 'blur(1px)' : 'blur(0px)';
 }
 
 // Execute a function when the user presses a key on the keyboard
@@ -212,13 +224,47 @@ const sendMessage = () => {
     converter.setFlavor('github');
     history.innerHTML += "<br/><br/>User : ";
     history.innerHTML += html;
+    history.scrollTo({
+        top: history.scrollHeight,
+        behavior: 'smooth'
+    });
 
     const ipString = document.getElementById("ip");
     let ip = ipString.innerHTML.replace("`", "").replace("`", "");
-
-    socket.emit('marv', { ip : ip, message : input.value });
+    let tzOffset = new Date().getTimezoneOffset(),
+        tzInput = document.getElementById('tzOffset');
+    tzInput.value = tzOffset*(-1);
+    socket.emit('marv', { ip : ip, message : input.value, tz : tzInput.value });
     input.value = "";
     if (history.selectionStart == history.selectionEnd) {
         history.scrollBottom = history.scrollHeight;
     }
 };
+
+const blackAndWhite = () => {
+    document.getElementById('color-css').href='/stylesheets/bw-var.css';
+    document.body.style.background="0";
+    document.body.style.backgroundColor = "var(--main-bg-color);";
+    normal = false;
+    bw = true;
+    wb = false;
+}
+
+const whiteAndBlack = () => {
+    document.getElementById('color-css').href='/stylesheets/wb-var.css';
+    document.body.style.background="0";
+    document.body.style.backgroundColor = "var(--main-bg-color)";
+    normal = false;
+    wb = true;
+    bw = false;
+}
+
+const color = () => {
+    document.getElementById('color-css').href='/stylesheets/color-var.css';
+    document.body.style.background = "url('../images/computing.jpeg') no-repeat fixed center";
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundColor = "var(--main-bg-color)";
+    normal = true;
+    wb = false;
+    bw = false;
+}

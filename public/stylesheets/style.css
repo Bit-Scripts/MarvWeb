@@ -3,15 +3,22 @@ body {
     margin:0;
     height: 100vh;
     width: 100vw;
-    background: lightblue url('../images/computing.jpeg') no-repeat fixed center;
+    background: url('../images/computing.jpeg') no-repeat fixed center;
+    background-color: var(--main-bg-color);
     background-size: cover;
     font-family: sans-serif;
     overflow: hidden;
 }
 
+#ip {
+    visibility: hidden;
+}
+
 #talk {
     position: absolute;
     transform: translateX(20vw);
+    border-color: var(--border-color);
+    border: solid 5px;
     width: 80px;
     height: 80px;
     top: 0;
@@ -19,7 +26,8 @@ body {
     margin: 25px;
     text-decoration-line: line-through;
     z-index: 5;
-    background-color: #700;
+    color: var(--color-text);
+    background-color: var(--to-talk-button-bg-color);
     font-size: 1.5em;
     border-radius: 50%
 }
@@ -27,6 +35,8 @@ body {
 #speech {
     position: absolute;
     transform: translateX(calc(20vw + 90px));
+    border-color: var(--border-color);
+    border: solid 5px;
     width: 80px;
     height: 80px;
     top: 0;
@@ -34,19 +44,20 @@ body {
     margin: 25px;
     text-decoration-line: line-through;
     z-index: 5;
-    background-color: #700;
+    color: var(--color-text);
+    background-color: var(--to-talk-button-bg-color);
     font-size: 1.5em;
     border-radius: 50%
 }
 
 h1 {
-color: white;
-text-shadow: #FC0 1px 0 10px;
+color: var(--color-text-title);
+text-shadow: var(--text-shadow) 1px 0 10px;
 }
 
 #welcome {
-color: white;
-text-shadow: #FC0 1px 0 10px;
+color: var(--color-text-title);
+text-shadow: var(--text-shadow) 1px 0 10px;
 }
 
 #bot {
@@ -68,11 +79,12 @@ text-shadow: #FC0 1px 0 10px;
 }
 
 #history {
-    background-color: #fffd;
+    background-color: var(--color-bg-history);
     backdrop-filter: blur(15px);
     border-radius: 10px;
-    border-color: #000;
+    border-color: var(--border-color);
     border: solid 5px;
+    color: var(--color-text);
     width: 45vw;
     height: min(35em, 60vh);
     padding: 1vw;
@@ -90,26 +102,38 @@ text-shadow: #FC0 1px 0 10px;
 #messageSend {
     display: flex;
     flex-direction: row;
+    border-color: var(--border-color);
+    border: solid 5px;
     width: 46vw;
     height: 10vh;
     margin: 15px;
     margin-bottom: 50px;
 }
 
+#text-input::placeholder {
+    color: #444;
+}
+
 #text-input {
     transform: translateY(calc(-40vw));
+    border-color: var(--border-color);
+    border: solid 5px;
     width: 70vw;
     height: 10vh;
     margin: 15px;
     font-size: 2.5em;
     border-radius: 20px;
+    color: var(--color-text);
+    background-color: var(--color-bg-history);
 }
 
 #send { 
     transform: translateY(calc(-40vw));
-    background-color: #070D;
+    border-color: var(--border-color);
+    border: solid 5px;
+    background-color: var(--to-send-button-bg-color);
     backdrop-filter: blur(5px);
-    color: black;
+    color: var(--color-text-alt);
     width: 25vw;
     margin-left: 30vw;
     height: 10vh;
@@ -124,7 +148,7 @@ text-shadow: #FC0 1px 0 10px;
     right: 0;
     margin-right: 1vw;
     margin-left: 80vw;
-    color:bisque;
+    color:var(--cr-and-disclaim);
     z-index: 500;
     font-weight: bold;
     text-align: center
@@ -138,12 +162,12 @@ text-shadow: #FC0 1px 0 10px;
     right: 10px;
     top: -10px;
     margin-left: 75vw;
-    color: bisque;
-    text-shadow: #FC0 1px 0 10px;
+    color: var(--cr-and-disclaim);
+    text-shadow: var(--text-shadow) 1px 0 10px;
 }
 
 pre {
-    background-color: #8c929d;
+    background-color: var(--send-text-bg);
     word-break: break-word;
 }
 
@@ -159,13 +183,55 @@ div::-webkit-scrollbar {
 }
   
 div::-webkit-scrollbar-thumb {
-    background: rgba(189, 210, 223, 0.8);
+    background: var(--thumb-bg);
     border-radius: 10px;
 }
   
 div::-webkit-scrollbar-track {
     border-radius: 10px;
     opacity: 0.65;
-    border: 2px solid #000;
-    background: rgba(30, 53, 62, 0.8) !important;
+    border: 2px solid var(--border-color);
+    background: var(--scrollbar-track) !important;
+}
+
+#bw {
+    position: fixed;
+    color: black;
+    border-color: var(--border-color);
+    border: solid 5px;
+    background-color: white;
+    top: 42vh;
+    left: calc(100vw - 95px);
+    height: 90px;
+    width:90px;
+    font-size: 40px;
+    border-radius: 50%;
+}
+
+#wb {
+    position: fixed;
+    color: white;
+    border-color: var(--border-color);
+    border: solid 5px;
+    background-color: black;
+    top: calc(42vh + 95px);
+    left: calc(100vw - 95px);
+    height: 90px;
+    width:90px;
+    font-size: 40px;
+    border-radius: 50%;
+}
+
+#color {
+    position: fixed;
+    color: blacke;
+    border-color: var(--border-color);
+    border: solid 5px;
+    background-color: #070D;
+    top: calc(42vh + (2 * 95px));
+    left: calc(100vw - 95px);
+    height: 90px;
+    width:90px;
+    font-size: 40px;
+    border-radius: 50%;
 }

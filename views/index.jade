@@ -1,8 +1,7 @@
 extends layout
 
 block content
-  div(id="ip")
-    `#{ip}`
+  div(id="ip") `#{ip}`
   p(id="disclaimer") Pour avoir la meilleure expérience possible, nous vous recommandons d'utiliser Google Chrome, en particulier la version pour Windows 
   h1 Marv Bot
   p(id='welcome') Welcome to Marv Bot
@@ -17,7 +16,15 @@ block content
     i(class="fa-solid fa-volume-high")
   div(id="history"  markdown="1" class="language-html")
   div(id='messageSend')
-    textarea(id="text-input" onkeyup="preventMoving(event)" placeholder="Posez-votre question ici... ?")
+    textarea(id="text-input" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])" onkeyup="preventMoving(event)" placeholder="Posez-votre question ici... ?")
+    input(type="hidden", name="tzOffset", id="tzOffset")
     button(type='button' id='send' onclick='sendMessage()')
       i(class='fa-solid fa-paper-plane')
-  p(id="copyright") © Bit Scripts (Edited by Paullux) 2023 - Tous droits réservés - All rights reserved
+  button(type='button', id='bw', onclick='blackAndWhite()')
+    i(class="fas fa-low-vision")
+  button(type='button', id='wb', onclick='whiteAndBlack()')
+    i(class="fas fa-low-vision")
+  button(type='button', id='color', onclick='color()')
+    i(class="fas fa-eye")
+  footer
+    p(id="copyright") © Bit Scripts (Edited by Paullux) 2023 - Tous droits réservés - All rights reserved

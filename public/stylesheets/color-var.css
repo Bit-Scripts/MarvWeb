@@ -1,0 +1,15 @@
+:root {
+    --main-bg-color: lightblue;
+    --to-talk-button-bg-color: #700;
+    --to-send-button-bg-color: #070D;
+    --text-shadow: #FC0;
+    --color-text-title: white;
+    --color-text: black;
+    --color-text-alt: black;
+    --color-bg-history: #99ad;
+    --border-color: #000;
+    --cr-and-disclaim: bisque;
+    --send-text-bg: #8c929d;
+    --thumb-bg: rgba(189, 210, 223, 0.8);
+    --scrollbar-track: rgba(30, 53, 62, 0.8);
+}

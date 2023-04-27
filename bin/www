@@ -58,7 +58,7 @@ io.on("connection", (socket) => {
     console.log(tokenBDD);
     console.log(tokenOrig);
     if(tokenBDD === tokenOrig) {
-      const response = await Marv(arg.message);
+      const response = await Marv(arg.message, arg.tz);
       console.log(response);
       io.to(socket.id).emit('marv', response);
     }

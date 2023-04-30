@@ -6,6 +6,10 @@ let authorizeToSpeak = false;
 let normal = true;
 let wb = false;
 let bw = false;
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+let activeRecognition = false;
+
 
 showdown.extension('codehighlight', () => {
     const htmlunencode = (text) => {
@@ -60,8 +64,9 @@ if ('speechSynthesis' in window) {
 const voicesLoader = new Promise((resolve, reject) => {
     if(synth) {
         let voices = [];
-        function PopulateVoices() {
+        PopulateVoices = () => {
             voices = synth.getVoices();
+            console.log(voices);
             if(voices.length > 0) {
                 resolve(voices);
             } else {
@@ -79,20 +84,16 @@ const voicesLoader = new Promise((resolve, reject) => {
     }
 });
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
-
-let activeRecognition = false;
-
-const startButton = (event) => {
+const startButton = async (event) => {
+    await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     activeRecognition = !activeRecognition;
-    recognition = new SpeechRecognition();
     recognition = new SpeechRecognition();
     recognition.lang = "fr-FR";
     recognition.start();
     const talk = document.getElementById('talk');
     if (activeRecognition) {
         talk.style.backgroundColor = '#0707';
+        talk.style.backdropFilter =  'blur(15px)';
     } else {
         recognition.stop();
         talk.style.backgroundColor = '#700';
@@ -140,6 +141,7 @@ const startButton = (event) => {
         recognition.start();
         activeRecognition = true;
         talk.style.backgroundColor = '#0707';
+        talk.style.backdropFilter =  'blur(15px)';
     }
 
     recognition.onspeechend = async () => {
@@ -149,6 +151,7 @@ const startButton = (event) => {
     }
 
     recognition.onerror = async (event) => {
+        console.error(event.error);
         recognition.stop();
         activeRecognition = false;
         talk.style.backgroundColor = '#700';
@@ -158,6 +161,7 @@ const startButton = (event) => {
 voicesLoader.then(voices => {
     voice = voices.find(el => el.name === "Microsoft Paul - French (France)");
     if(!voice) voice = voices.find(el => el.name === "Microsoft Hortense Desktop - French");
+    if(!voice) voice = voices.find(el => el.name === "Google français");
 });
 
 const syntheseVocale = async text => {
@@ -188,11 +192,12 @@ const toggleSynth = (event) => {
         talk(false);
         speech.style.backgroundColor = '#700';
         authorizeToSpeak = false;
-        return;
+        return authorizeToSpeak;
     } else {
         speech.style.backgroundColor = '#0707';
+        speech.style.backdropFilter = 'blur(15px)';
         authorizeToSpeak = true;
-        return;
+        return authorizeToSpeak;
     }
 }
 

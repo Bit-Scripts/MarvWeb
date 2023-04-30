@@ -1,8 +1,12 @@
-const { OPENAI_API_KEY, organization, OPEN_WEATHER_MAP_KEY } = require('./config.json');
-const { Configuration, OpenAIApi } = require("openai");
+const { OPENAI_API_KEY, organization, OPEN_WEATHER_MAP_KEY, API_NEWS } = require('./config.json');
+const { Configuration, OpenAIApi, OpenAIApiAxiosParamCreator } = require("openai");
 const moment = require('moment-timezone');
 const fetch = require('node-fetch');
-const { find } = require('geo-tz')
+const { find } = require('geo-tz');
+const axios = require('axios');
+let response = [];
+let newsToday = "";
+const joursFeries = require("@socialgouv/jours-feries");
 
 const configuration = new Configuration({
 	organization: organization,
@@ -11,12 +15,14 @@ const configuration = new Configuration({
 
 const openai = new OpenAIApi(configuration);
 
-const personality =`Tu es Marv qui est un chatbot à la fois un expert en informatique et un compagnon de conversation.
-Le bot doit être capable de parler de tout et de rien, tout en ayant une connaissance approfondie des sujets liés à l'informatique.
-Il doit être capable de répondre à des questions techniques sur les langages de programmation,les architectures de systèmes, les protocoles réseau, etc.
- en utilisant un langage simple et accessible. 
-Le bot doit également être capable de maintenir une conversation intéressante et engageante,en utilisant des techniques de génération de texte avancées telles que l'humour, l'empathie et la personnalisation.
-Utilisez les dernières avancées de l'IA pour créer un bot qui peut apprendre de ses interactions avec les utilisateurs et s'adapter à leur style de conversation.Il respect le MarkDown pour partager du code.`;
+const personality = `Tu es Marv, un chatbot doté d'une expertise en informatique et capable de mener des conversations captivantes. 
+Ton rôle est de discuter de manière informelle de l'actualité quotidienne en utilisant un langage simple et accessible. 
+Dans un premier temps, tu présenteras les actualités de manière concise, en précisant les sources sans URL, avant de proposer d'en fournir davantage de détails. 
+Tu devras être capable de discuter de tout et de rien, tout en ayant une connaissance approfondie des sujets liés à l'informatique. 
+Tu devras être en mesure de répondre à des questions techniques sur les langages de programmation, les architectures de systèmes, les protocoles réseau, etc. en utilisant un langage simple et compréhensible. 
+De plus, tu devras maintenir une conversation intéressante et engageante en utilisant des techniques de génération de texte avancées telles que l'humour, l'empathie et la personnalisation. 
+En utilisant les dernières avancées de l'IA, tu devras créer un bot capable d'apprendre de ses interactions avec les utilisateurs et de s'adapter à leur style de conversation. 
+Et n'oublie pas que tu devras respecter le format Markdown pour partager du code.`
 
 const DATA = {
     refresh_date: new Date().toLocaleDateString('fr-FR', {
@@ -36,63 +42,101 @@ const setWeatherInformation = async (ville) => {
     )
     .then(r => r.json())
     .then(r => {
-        timezone = find(r.coord.lat, r.coord.lon)[0];
-        console.log(r);
-        DATA.city_temperature = Math.round(r.main.temp);
-        DATA.city_weather = r.weather[0].description;
-        DATA.sun_rise = new Date(r.sys.sunrise * 1000).toLocaleString('fr-FR', {
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: timezone,
-        });
-        DATA.sun_set = new Date(r.sys.sunset * 1000).toLocaleString('fr-FR', {
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: timezone,
-        });
-        DATA.timeZone = timezone;
+        if (r.coord !== undefined) {
+            timezone = find(r.coord.lat, r.coord.lon)[0];
+            DATA.city_temperature = Math.round(r.main.temp);
+            DATA.city_weather = r.weather[0].description;
+            DATA.sun_rise = new Date(r.sys.sunrise * 1000).toLocaleString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: timezone,
+            });
+            DATA.sun_set = new Date(r.sys.sunset * 1000).toLocaleString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: timezone,
+            });
+            DATA.timeZone = timezone;
+        }
     });
     return DATA;
 }
 
+const actu = async () => {
+    let date;
+    date = new Date();
+    for(let index in joursFeries(2023)){
+        while (date.getDay() == 0 || joursFeries(2023)[index].toISOString().split('T')[0] == date.toISOString().split('T')[0]) {
+            date.setDate(date.getDate() - 1);
+        }
+    };
+    date = date.toISOString().split('T')[0];
+
+    response = await axios.get(`http://api.mediastack.com/v1/news?access_key=${API_NEWS}&countries=fr&limit=8&sources=-franceantilles&date=${date}`);
+    response = response.data.data;
+    console.log(response);
+    if (response !== []) {
+        console.log("Titre = " + response[0].title + " ; url = " + response[0].url);
+    } else {
+        console.log("Pas d'actualité pour le moment");
+        response = "Pas d'actualité pour le moment";
+    }    
+    return response;
+}
+
 const MatchFunc = (question, regExp) => {
     let ville;
-    const questionRetravailler = question.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/gi, '').replace(/\s/g, '-').replace(/_/g, '-').toLowerCase();
+    const questionRetravailler = question.normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
     console.log(questionRetravailler);
     const match = questionRetravailler.match(regExp);
     console.log('m = ' + match);
     if (match && match.length > 1) {
-        ville = match[1].replace('-',' ').replace(/-+$/g, ''); //.replace(/^\w/, c => c.toUpperCase()).replace('Washington dc', 'Washington DC');
+        ville = match[1];
         console.log(match);
     }
+    console.log(ville);
     return ville;
 }
-
 
 const Marv = async (question) => new Promise(async(resolve, reject) => {
 	console.log(question);
 
+    if (question.includes("actu") || question.includes('nouvelles')) {
+        newsToday = "";
+        const news = await actu();
+        for(let i = 0 ; i < news.length ; i++) {
+            newsToday += "Titre = " + news[i].title + " ; source = " + news[i].source + " ; url = " + news[i].url + "\n";
+        };
+        console.log(newsToday);
+    }
 
-    let regExp =  [
-        /^meteo-a-([\w\s-]+)$/i,
-        /^quelle-est-la-meteo-a-([\w\s-]+)$/i,
-        /^quel-temps-fait-il-a-([\w\s-]+)$/i,
-        /^quelle-est-lheure-a-([\w\s-]+)$/i,
-        /^quelle-heure-est-il-a-([\w\s-]+)$/i,
-        /^quelle-heure-a-([\w\s-]+)$/i,
-        /^heure-a-([\w\s-]+)$/i
+    let regExp = [
+        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)/i,
+        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)/i,
+        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?:a|en)\s*([\w\s-]+)$/i,
+        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?:a|en)\s*([\w\s]+(?:-[\w\s]+)*)/i,
+        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?:a|en)\s*([\w\s]+(?:-[\w\s]+)*)$/i,
+        /^([\w\s-]+)\s*(?:meteo|temps|heure|l'heure)\s/i,
+        /^([\w\s-]+)\s*(?:meteo|temps|heure|l'heure)$/i
     ];
 
     let ville;
     for (const regex of regExp) {
-        res = MatchFunc(question, regex);
-        if (res) {
-            ville = res;
-            break;
+        if (question.match(/(?:temps|météo|heure)/i)) {
+            res = MatchFunc(question, regex);
+            if (res) {
+                if (res != " ") {
+                    ville = res;
+                    break;
+                }
+            }
         }
     }
-    
+
     let heure;
+
     if (ville !== undefined) {
         await setWeatherInformation(ville.replace(' ','%20'));
         console.log(DATA.timeZone);  
@@ -100,13 +144,24 @@ const Marv = async (question) => new Promise(async(resolve, reject) => {
         console.log(heure);
     }
 
+    const meteoDate = `
+        heure à ${ville} : ${heure} ;\n 
+        Météo à ${ville} : 
+        Actuellement à ${ville} : 
+        il fait ${DATA.city_temperature} 
+        le temps est ${DATA.city_weather} 
+        et aujourd'hui, 
+        le levé du soleil est à ${DATA.sun_rise} 
+        et le couché est à ${DATA.sun_set}.\n
+        Nouvelles Actualités : \n${newsToday}`;
 
     const gptResponse = await openai.createChatCompletion({
         model: "gpt-3.5-turbo",
         messages: [
             { role: "system", content: personality }, 
-            { role: "assistant", content: "heure à " + ville + ", " + heure + " ; Météo à " + ville + " : Actuellement à " + ville + "; il fait " + DATA.city_temperature + " le temps est " + DATA.city_weather + "et aujourd'hui, le levé du soleil est à " + DATA.sun_rise + " et le couché est à " + DATA.sun_set }, 
-            { role: "user", content: question }]
+            { role: "assistant", content: meteoDate }, 
+            { role: "user", content: question }
+        ]
     });
 
     let laReponse = gptResponse.data.choices[0].message.content;

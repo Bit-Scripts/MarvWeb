@@ -8,6 +8,7 @@ var database = require("../db");
 router.get('/', function(req, res, next) {
   var ip = req.headers['x-real-ip'] || req.connection.remoteAddress;
   res.header("Access-Control-Allow-Origin", ip);
+  console.log(ip);
   ip = crypto.createHash('sha1').update(ip).digest('base64');
   db = database.createDbConnection();
   db.serialize(() => {

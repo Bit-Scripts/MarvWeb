@@ -72,16 +72,22 @@ const actu = async () => {
     };
     date = date.toISOString().split('T')[0];
 
-    response = await axios.get(`http://api.mediastack.com/v1/news?access_key=${API_NEWS}&countries=fr&limit=8&sources=-franceantilles&date=${date}`);
-    response = response.data.data;
-    console.log(response);
-    if (response !== []) {
-        console.log("Titre = " + response[0].title + " ; url = " + response[0].url);
-    } else {
-        console.log("Pas d'actualité pour le moment");
+    return await axios.get(`http://api.mediastack.com/v1/news?access_key=${API_NEWS}&countries=fr&limit=8&sources=-franceantilles&date=${date}`)
+    .then((response) => {
+        response = response.data.data;
+        if (response !== []) {
+            console.log("Titre = " + response[0].title + " ; url = " + response[0].url);
+            return response;
+        } else {
+            console.log("Pas d'actualité pour le moment");
+            response = "Pas d'actualité pour le moment";
+            return response;
+        }
+    }).catch((error) => {
+        console.log(error + "\nPas d'actualité pour le moment");
         response = "Pas d'actualité pour le moment";
-    }    
-    return response;
+        return response;
+    })
 }
 
 const MatchFunc = (question, regExp) => {
@@ -106,9 +112,14 @@ const Marv = async (question) => new Promise(async(resolve, reject) => {
     if (question.includes("actu") || question.includes('nouvelles')) {
         newsToday = "";
         const news = await actu();
-        for(let i = 0 ; i < news.length ; i++) {
-            newsToday += "Titre = " + news[i].title + " ; source = " + news[i].source + " ; url = " + news[i].url + "\n";
-        };
+        if (news !== undefined && typeof news !== 'string') {            
+            for(let i = 0 ; i < news.length ; i++) {
+                newsToday += "Titre = " + news[i].title + " ; source = " + news[i].source + " ; url = " + news[i].url + "\n";
+            };
+        } else {
+            newsToday = "Pas d'actualité pour le moment";
+        }
+
         console.log(newsToday);
     }
 

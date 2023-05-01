@@ -39,6 +39,16 @@ showdown.extension('codehighlight', () => {
     ];
   });
 
+const removeValue = (value, index, arr) => {
+    // If the value at the current array index matches the specified value (2)
+    if (value === ' ' || value === '') {
+    // Removes the value from the original array
+        arr.splice(index, 1);
+        return true;
+    }
+    return false;
+}
+
 socket.on('marv', receive => {
     const history = document.getElementById("history");
     const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
@@ -51,7 +61,19 @@ socket.on('marv', receive => {
         top: history.scrollHeight,
         behavior: 'smooth'
     });
-    syntheseVocale(receive);
+    let str = receive.toString();
+    str = typeof str === 'string' ? str.split(/[.,;=?!\n]+/) : '';
+    str.filter(removeValue);
+    const iterator = str.values();
+    synthese = setInterval(() => {
+        value = iterator.next();
+        if (value.value == undefined) {
+            clearInterval(synthese);
+            return;
+        } else {
+            syntheseVocale(value.value);
+        }
+    }, 500);
 })
 
 if ('speechSynthesis' in window) {
@@ -164,7 +186,7 @@ voicesLoader.then(voices => {
     if(!voice) voice = voices.find(el => el.name === "Google français");
 });
 
-const syntheseVocale = async text => {
+const syntheseVocale = async (text) => {
     if (authorizeToSpeak) {
         return new Promise((resolve, reject) => {
             const toSpeak = new SpeechSynthesisUtterance(text);

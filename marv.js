@@ -106,10 +106,10 @@ const MatchFunc = (question, regExp) => {
     return ville;
 }
 
-const Marv = async (question) => new Promise(async(resolve, reject) => {
+const Marv = async (question, timeZon) => new Promise(async(resolve, reject) => {
 	console.log(question);
 
-    if (question.includes("actu") || question.includes('nouvelles')) {
+    if (question.includes("actu") || question.includes('nouvel') || question.includes('information')) {
         newsToday = "";
         const news = await actu();
         if (news !== undefined && typeof news !== 'string') {            
@@ -123,6 +123,7 @@ const Marv = async (question) => new Promise(async(resolve, reject) => {
         console.log(newsToday);
     }
 
+    ﻿
     let regExp = [
         /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)/i,
         /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)/i,
@@ -147,33 +148,56 @@ const Marv = async (question) => new Promise(async(resolve, reject) => {
     }
 
     let heure;
-
+    console.log('Ville = ' + ville);
     if (ville !== undefined) {
         await setWeatherInformation(ville.replace(' ','%20'));
-        console.log(DATA.timeZone);  
-        heure = moment.tz(DATA.timeZone).format('HH:mm:ss');
-        console.log(heure);
+        console.log(DATA.timeZone)
+        if (DATA.timeZone !== undefined) {
+            console.log(DATA.timeZone);  
+            heure = moment.tz(DATA.timeZone).format('HH:mm:ss');
+            console.log(heure);
+        } else {
+            const heureUTC = new Date();
+            if (timeZon !== undefined || !Number.isInteger(timeZon)) {
+                console.log(timeZon);
+                heure = moment.tz(timeZon).format('HH:mm:ss');
+            } else {
+                heure = "Vous devez autoriser le partage de votre position"       
+                console.log(heure);
+            }         
+        }
     }
 
-    const meteoDate = `
-        heure à ${ville} : ${heure} ;\n 
+    var meteoDate = "";
+    
+    if (ville != undefined) {
+        meteoDate += `heure à l'emplacement de l'utilisateur : ${heure}\n
+        heure à ${ville} : ${heure}\n`;
+    }
+
+    if (newsToday != undefined) {
+        meteoDate += `Nouvelles Actualités : \n${newsToday}\n`;
+    }
+    if (DATA.city_temperature != undefined) {
+        meteoDate += `
         Météo à ${ville} : 
         Actuellement à ${ville} : 
         il fait ${DATA.city_temperature} 
         le temps est ${DATA.city_weather} 
         et aujourd'hui, 
         le levé du soleil est à ${DATA.sun_rise} 
-        et le couché est à ${DATA.sun_set}.\n
-        Nouvelles Actualités : \n${newsToday}`;
+        et le couché est à ${DATA.sun_set}.`;
+    }
 
-    const gptResponse = await openai.createChatCompletion({
-        model: "gpt-3.5-turbo",
-        messages: [
-            { role: "system", content: personality }, 
-            { role: "assistant", content: meteoDate }, 
-            { role: "user", content: question }
+    gptResponse = await openai.createChatCompletion({
+    model: "gpt-3.5-turbo",
+    messages: [
+        { role: "system", content: personality },  
+        { role: "assistant", content: meteoDate },
+        { role: "user", content: question }
         ]
     });
+
 
     let laReponse = gptResponse.data.choices[0].message.content;
     resolve(laReponse);    

@@ -14,7 +14,8 @@ var tokenOrig = getToken();
 let tokenBDD;
 const fs = require("fs");
 const database = require('../db.js');
-
+var historic = [];
+var historic_total = "";
 /**
  * Get port from environment and store in Express.
  */
@@ -31,6 +32,7 @@ const io = new Server(server);
 
 io.on("connection", (socket) => {
   socket.on('marv', async (arg) => {
+    console.log(arg.ip);
     console.log(arg.message);
     db = database.createDbConnection();
     /*
@@ -39,7 +41,6 @@ io.on("connection", (socket) => {
         return token;
       });
     });*/
-    
     try {
       tokenBDD = await new Promise((resolve, reject) => {
         const sql = `SELECT token FROM authentification WHERE ip="${arg.ip}"`;
@@ -58,9 +59,42 @@ io.on("connection", (socket) => {
     console.log(tokenBDD);
     console.log(tokenOrig);
     if(tokenBDD === tokenOrig) {
-      const response = await Marv(arg.message, arg.tz);
-      console.log(response);
-      io.to(socket.id).emit('marv', response);
+      var response = ""
+      // var historic_total = "";
+      // if(historic.length > 1) {
+      //   while(historic.length > 1){
+      //     historic.shift();
+      //   }
+      // } 
+      var lines = arg.message.split('\n');
+      var message = "";
+      for(var i = lines.length - 1; i >= 0; i--){
+        if((message + lines[i]).length > 4096){
+          message = ""
+          response = "Message trop long"
+          break;
+        }
+        message += lines[i] + "\n";
+      }
+      // for (var i = 0; i < historic.length; i++) {
+      //   var ip_historic = historic[i][0];
+      //   if (ip_historic == arg.ip & response == "") {
+      //     historic_total += historic[i][1];
+      //   }
+      // }
+      
+      //message += "Historique des conversations : \n" + historic_total;
+      
+      if (response != "Message trop long") {
+        response = await Marv(message, arg.tz); 
+        console.log(response);
+        io.to(socket.id).emit('marv', response);
+        // historic.push([arg.ip, ' question ' + message + ' réponse ' + response + '\n']);
+      } else {
+        io.to(socket.id).emit('marv', response);
+      }
+    } else {
+      io.to(socket.id).emit('marv', 'Message non autorisé, veuillez recharger la page !');
     }
   })
 });

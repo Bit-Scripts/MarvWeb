@@ -24,20 +24,20 @@ showdown.extension('codehighlight', () => {
       {
         type: 'output',
         filter: (text, converter, options) => {
-          // use new shodown's regexp engine to conditionally parse codeblocks
-          const left  = '<pre><code\\b[^>]*>',
-              right = '</code></pre>',
-              flags = 'g',
-              replacement = function (wholeMatch, match, left, right) {
-                // unescape match to prevent double escaping
-                match = htmlunencode(match);
-                return left + hljs.highlightAuto(match).value + right;
-              };
-          return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
+            // use new shodown's regexp engine to conditionally parse codeblocks
+            const left  = '<pre><code\\b[^>]*>',
+                right = '</code></pre>',
+                flags = 'g',
+                replacement = function (wholeMatch, match, left, right) {
+                    // unescape match to prevent double escaping
+                    match = htmlunencode(match);
+                    return left + hljs.highlightAuto(match).value + right;
+                };
+            return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
         }
       }
     ];
-  });
+});
 
 const removeValue = (value, index, arr) => {
     // If the value at the current array index matches the specified value (2)
@@ -72,6 +72,7 @@ socket.on('marv', receive => {
             return;
         } else {
             syntheseVocale(value.value);
+            talk(true);
         }
     }, 500);
 })
@@ -148,10 +149,9 @@ const startButton = async (event) => {
                     top: history.scrollHeight,
                     behavior: 'smooth'
                 });
-                let tzOffset = new Date().getTimezoneOffset(),
-                    tzInput = document.getElementById('tzOffset');
-                tzInput.value = tzOffset*(-1);
-                socket.emit('marv', { ip : ip, message : transcript, tz : tzInput.value });
+                let tzOffset = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                console.log(tzOffset);
+                socket.emit('marv', { ip : ip, message : transcript, tz : tzOffset });
             }
         }
         if (history.selectionStart == history.selectionEnd) {
@@ -198,7 +198,10 @@ const syntheseVocale = async (text) => {
             });
 
             synth.speak(toSpeak);
-            talk(true);
+
+            toSpeak.onstart = (event) => {
+                talk(true);
+            };
 
             toSpeak.onend = (event) => {
                 talk(false);
@@ -225,7 +228,11 @@ const toggleSynth = (event) => {
 
 const talk = (speak) => {
     const botAvatar = document.getElementById('bot');
-    botAvatar.src = speak ? 'images/botavatar.gif' : 'images/botavatar.png';
+    if (authorizeToSpeak && (normal || wb)) {
+        botAvatar.src = speak ? 'images/botavatar.gif' : 'images/botavatar.png';
+    } else if (authorizeToSpeak && bw) {
+        botAvatar.src = speak ? 'images/botavatarLight-Anime.gif' : 'images/botavatarLight-default.png';
+    }
     botAvatar.style.filter = speak ? 'blur(1px)' : 'blur(0px)';
 }
 
@@ -270,6 +277,8 @@ const sendMessage = () => {
 
 const blackAndWhite = () => {
     document.getElementById('color-css').href='/stylesheets/bw-var.css';
+    document.getElementById('botbouche').src='images/BotAvatarLight.png';
+    document.getElementById('bot').src='images/botavatarLight-default.png';
     document.body.style.background="0";
     document.body.style.backgroundColor = "var(--main-bg-color);";
     normal = false;
@@ -279,6 +288,8 @@ const blackAndWhite = () => {
 
 const whiteAndBlack = () => {
     document.getElementById('color-css').href='/stylesheets/wb-var.css';
+    document.getElementById('botbouche').src='images/BotAvatarDark.png';
+    document.getElementById('bot').src='images/botavatar.png';
     document.body.style.background="0";
     document.body.style.backgroundColor = "var(--main-bg-color)";
     normal = false;
@@ -288,6 +299,8 @@ const whiteAndBlack = () => {
 
 const color = () => {
     document.getElementById('color-css').href='/stylesheets/color-var.css';
+    document.getElementById('botbouche').src='botavata-bouche.png';
+    document.getElementById('bot').src='images/botavatar.png';
     document.body.style.background = "url('../images/computing.jpeg') no-repeat fixed center";
     document.body.style.backgroundSize = "cover";
     document.body.style.backgroundColor = "var(--main-bg-color)";

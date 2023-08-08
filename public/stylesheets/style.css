@@ -236,12 +236,23 @@ div::-webkit-scrollbar-track {
     border-radius: 50%;
 }
 
+#privacy-index {
+    position: fixed;
+    color:var(--cr-and-disclaim);
+    z-index: 500;
+    font-weight: bold;
+    background-color: #444444cc;
+    bottom: 10px;
+    left: 10px;
+}
+
 #privacy {
     position: fixed;
     color:var(--cr-and-disclaim);
     z-index: 500;
     font-weight: bold;
     background-color: #444444cc;
+    max-width: calc(100vw - 20px);
     top: 50px;
     bottom: 10px;
     left: 10px;

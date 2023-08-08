@@ -9,6 +9,7 @@ var favicon = require('serve-favicon');
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 const { router, getToken } = require('./routes/index');
+ //const helmet = require('helmet')
 
 var app = express();
 
@@ -17,6 +18,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 app.set('trust proxy', 'loopback' );
 
+
+ // app.use(helmet())
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

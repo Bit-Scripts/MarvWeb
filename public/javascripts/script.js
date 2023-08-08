@@ -15,9 +15,9 @@ showdown.extension('codehighlight', () => {
     const htmlunencode = (text) => {
       return (
         text
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
+          .replaceAll(/&amp;/g, '&')
+          .replaceAll(/&lt;/g, '<')
+          .replaceAll(/&gt;/g, '>')
         );
     }
     return [
@@ -130,12 +130,12 @@ const startButton = async (event) => {
 
     recognition.onresult = (event) => {
         const ipString = document.getElementById("ip");
-        let ip = ipString.innerHTML.replace("`", "").replace("`", "");
+        let ip = ipString.innerHTML.replaceAll("`", "");
 
         const history = document.getElementById("history");
         if(event.isTrusted) {
             const current = event.resultIndex;
-            const transcript = event.results[current][0].transcript.replace('Marc', 'Marv');
+            const transcript = event.results[current][0].transcript.replaceAll('Marc', 'Marv');
             const mobileRepeatBug = (current == 1 && transcript == event.results[0][0].transcript);
             if(!mobileRepeatBug) {
                 history.innerHTML += "<br/>__________________________________________________________"
@@ -264,7 +264,7 @@ const sendMessage = () => {
     });
 
     const ipString = document.getElementById("ip");
-    let ip = ipString.innerHTML.replace("`", "").replace("`", "");
+    let ip = ipString.innerHTML.replaceAll("`", "");
     let tzOffset = new Date().getTimezoneOffset(),
         tzInput = document.getElementById('tzOffset');
     tzInput.value = tzOffset*(-1);

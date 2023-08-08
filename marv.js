@@ -93,7 +93,7 @@ const actu = async () => {
 const MatchFunc = (question, regExp) => {
     let ville;
     const questionRetravailler = question.normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
+        .replaceAll(/[\u0300-\u036f]/g, "")
         .toLowerCase();
     console.log(questionRetravailler);
     const match = questionRetravailler.match(regExp);
@@ -124,7 +124,7 @@ const Marv = async (question, timeZon) => new Promise(async(resolve, reject) => 
     }
 
     ﻿
-    let regExp = [
+    const regExp = [
         /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)/i,
         /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)/i,
         /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?:a|en)\s*([\w\s-]+)$/i,
@@ -136,43 +136,41 @@ const Marv = async (question, timeZon) => new Promise(async(resolve, reject) => 
 
     let ville;
     for (const regex of regExp) {
-        if (question.match(/(?:temps|météo|heure)/i)) {
-            res = MatchFunc(question, regex);
-            if (res) {
-                if (res != " ") {
-                    ville = res;
-                    break;
-                }
-            }
+      if (question.match(/(?:temps|météo|heure)/i)) {
+        const res = MatchFunc(question, regex);
+        if (res & res != 'est-il') {
+            ville = res;
+            break;
         }
+      }
     }
 
     let heure;
     console.log('Ville = ' + ville);
     if (ville !== undefined) {
-        await setWeatherInformation(ville.replace(' ','%20'));
+        await setWeatherInformation(ville.replaceAll(' ','%20'));
         console.log(DATA.timeZone)
         if (DATA.timeZone !== undefined) {
             console.log(DATA.timeZone);  
             heure = moment.tz(DATA.timeZone).format('HH:mm:ss');
             console.log(heure);
+        }    
+    } else {
+        const heureUTC = new Date();
+        if (timeZon !== undefined || !Number.isInteger(timeZon)) {
+            console.log(timeZon);
+            heure = moment.utc().add(timeZon, 'minutes').format('HH:mm:ss');
         } else {
-            const heureUTC = new Date();
-            if (timeZon !== undefined || !Number.isInteger(timeZon)) {
-                console.log(timeZon);
-                heure = moment.tz(timeZon).format('HH:mm:ss');
-            } else {
-                heure = "Vous devez autoriser le partage de votre position"       
-                console.log(heure);
-            }         
-        }
+            heure = "Vous devez autoriser le partage de votre position"       
+            console.log(heure);
+        }         
     }
-
     var meteoDate = "";
     
-    if (ville != undefined) {
-        meteoDate += `heure à l'emplacement de l'utilisateur : ${heure}\n
-        heure à ${ville} : ${heure}\n`;
+    console.log(heure)
+
+    if (heure != undefined) {
+        meteoDate += `heure à l'emplacement de l'utilisateur : ${heure}\n;`;
     }
 
     if (newsToday != undefined) {
@@ -190,7 +188,7 @@ const Marv = async (question, timeZon) => new Promise(async(resolve, reject) => 
     }
 
     gptResponse = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo",
+    model: "gpt-3.5-turbo-0613",
     messages: [
         { role: "system", content: personality },  
         { role: "assistant", content: meteoDate },

@@ -60,41 +60,45 @@ io.on("connection", (socket) => {
     console.log(tokenOrig);
     if(tokenBDD === tokenOrig) {
       var response = ""
-      // var historic_total = "";
-      // if(historic.length > 1) {
-      //   while(historic.length > 1){
-      //     historic.shift();
-      //   }
-      // } 
+      var historic_total = "";
+      if (historic.length > 4) {
+        historic.splice(4);
+      }     
       var lines = arg.message.split('\n');
+      var maxLength = 4096; // Limite de longueur du message
       var message = "";
-      for(var i = lines.length - 1; i >= 0; i--){
-        if((message + lines[i]).length > 4096){
-          message = ""
-          response = "Message trop long"
+      for (var i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].length > maxLength) {
+          response = "Une ligne du message est trop longue";
+          break;
+        }
+        if (message.length + lines[i].length > maxLength) {
+          response = "Message trop long";
           break;
         }
         message += lines[i] + "\n";
       }
-      // for (var i = 0; i < historic.length; i++) {
-      //   var ip_historic = historic[i][0];
-      //   if (ip_historic == arg.ip & response == "") {
-      //     historic_total += historic[i][1];
-      //   }
-      // }
+
+      var historic_total = "";
+      for (var i = 0; i < historic.length; i++) {
+        var ip_historic = historic[i][0];
+        if (ip_historic == arg.ip) {
+          historic_total += historic[i][1];
+        }
+      }
       
-      //message += "Historique des conversations : \n" + historic_total;
+      message += "Historique des conversations : \n" + historic_total;
       
-      if (response != "Message trop long") {
+      if (response != "Message trop long" || response != "Une ligne du message est trop longue") {
         response = await Marv(message, arg.tz); 
         console.log(response);
-        io.to(socket.id).emit('marv', response);
-        // historic.push([arg.ip, ' question ' + message + ' réponse ' + response + '\n']);
+        io.to(socket.id).emit('marv', response.replaceAll(arg.ip, "Utilisateur"));
+        historic.push([arg.ip, ('Message de '+ arg.ip + ' ' + message + ' réponse de Marv ' + response + '\n').replaceAll("Historique des conversations : \n", "")]);
       } else {
         io.to(socket.id).emit('marv', response);
       }
     } else {
-      io.to(socket.id).emit('marv', 'Message non autorisé, veuillez recharger la page !');
+      io.to(socket.id).emit('marv', 'Message non autorisé, veuillez recharger la page ! La mémoire de Marv a été réinitialisé');
     }
   })
 });

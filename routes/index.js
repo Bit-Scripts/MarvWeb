@@ -20,6 +20,11 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Marv Web', ip: `${ip}` });
 });
 
+/* GET privacy policy and terms of service page. */
+router.get('/privacy', function(req, res, next) {
+  res.render('privacy', { title: 'Politique de Confidentialité & CGU' });
+});
+
 const getToken = () => { return token; }
 
 module.exports = { router, getToken };

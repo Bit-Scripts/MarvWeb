@@ -235,3 +235,13 @@ div::-webkit-scrollbar-track {
     font-size: 40px;
     border-radius: 50%;
 }
+
+#privacy {
+    position: fixed;
+    color:var(--cr-and-disclaim);
+    z-index: 500;
+    font-weight: bold;
+    background-color: #444444cc;
+    bottom: 10px;
+    left: 10px;
+}

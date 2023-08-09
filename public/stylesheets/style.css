@@ -224,7 +224,7 @@ div::-webkit-scrollbar-track {
 
 #color {
     position: fixed;
-    color: blacke;
+    color: black;
     border-color: var(--border-color);
     border: solid 5px;
     background-color: #070D;
@@ -261,6 +261,7 @@ div::-webkit-scrollbar-track {
     padding: 15px;
     border-radius: 10px;
     overflow-y: scroll;
+    text-shadow: none;
 }
 
 #privacy-button {
@@ -272,9 +273,10 @@ div::-webkit-scrollbar-track {
     background-color: #444444cc;
     top: 10px;
     left: 20px;
+    text-shadow: none;
 }
 
 #privacy-welcome {
     color: var(--color-text-title);
-    text-shadow: var(--text-shadow) 1px 0 10px;
+    text-shadow: none;
 }

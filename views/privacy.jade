@@ -3,7 +3,7 @@ extends layout
 block content
     div(id='privacy')
         button(id='privacy-button' onclick="window.location.href = '/'") Retour
-        h1 Politique de Confidentialité & CGU
+        h1(id='privacy-welcome') Politique de Confidentialité & CGU
         h2(id='privacy-welcome') Politique de Confidentialité de Marv-Bot.fr
         ol(id='privacy-welcome')
             li
@@ -17,7 +17,7 @@ block content
                 p Un historique de 4000 caractères des interactions de l'utilisateur est conservé pour améliorer l'expérience utilisateur. Nous ne conservons pas d'informations sensibles ou personnelles au-delà de cette limite.
             li
                 strong Partage des informations:
-                p Nous n'utilisons et ne partageons vos informations qu'avec les services nécessaires pour fournir les fonctionnalités de notre site, tels que les API météo, actualités et OpenAI. Nous ne vendons, ne louons et ne partageons pas vos informations avec des tiers à des fins commerciales.
+                p Nous n'utilisons et ne partageons vos informations qu'avec les services nécessaires pour fournir les fonctionnalités de notre site, tels que les API #[a(href="https://openweathermap.org/api") météo], #[a(href="https://mediastack.com/?utm_source=apilayermarketplace&utm_medium=featured") actualités] et #[a(href="https://openai.com/blog/openai-api") OpenAI]. Nous ne vendons, ne louons et ne partageons pas vos informations avec des tiers à des fins commerciales.
             li
                 strong Sécurité:
                 p Toutes les communications entre le front-end et le back-end sont sécurisées via des sockets. Nous utilisons des technologies de synthèse vocale pour améliorer l'interaction avec l'utilisateur. Aucune donnée vocale n'est stockée ou traitée en dehors de votre appareil. Nous utilisons des API tierces pour obtenir des informations météorologiques et des actualités. Ces API peuvent avoir leurs propres politiques de confidentialité que nous vous recommandons de consulter.

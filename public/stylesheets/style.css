@@ -252,11 +252,13 @@ div::-webkit-scrollbar-track {
     z-index: 500;
     font-weight: bold;
     background-color: #444444cc;
-    max-width: calc(100vw - 20px);
+    width: calc(100vw - 20px);
+    height: calc(100vh - 60px);
     top: 50px;
     bottom: 10px;
     left: 10px;
     right: 10px;
+    overflow-y: scroll;
 }
 
 #privacy-button {
@@ -268,4 +270,9 @@ div::-webkit-scrollbar-track {
     background-color: #444444cc;
     top: 10px;
     left: 20px;
+}
+
+#privacy-welcome {
+    color: var(--color-text-title);
+    text-shadow: var(--text-shadow) 1px 0 10px;
 }

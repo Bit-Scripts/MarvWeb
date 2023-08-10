@@ -16,7 +16,7 @@
     "cities.json": "^1.1.23",
     "city-timezones": "^1.2.1",
     "city-timezones-offset": "^0.0.2",
-    "cloudflare-express": "^1.0.1",
+    "cloudflare-express": "^0.0.1",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "express": "^4.18.2",

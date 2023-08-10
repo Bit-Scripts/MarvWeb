@@ -9,7 +9,6 @@ const cities = require('cities.json');
 let response = [];
 let newsToday = "";
 const joursFeries = require("@socialgouv/jours-feries");
-let ville;
 
 const configuration = new Configuration({
 	organization: organization,
@@ -65,6 +64,47 @@ const setWeatherInformation = async (ville) => {
     return DATA;
 }
 
+const setWeatherInformationCRD = async (latitude, longitude) => {
+    await fetch(
+        `https://api.openweathermap.org/data/2.5/onecall?lat=${latitude}&lon=${longitude}&appid=${OPEN_WEATHER_MAP_KEY}&units=metric&lang=fr`
+    )
+    .then(r => r.json())
+    .then(r => {
+        console.log(r);
+        if (r.coord !== undefined) {
+            DATA.city_temperature = Math.round(r.main.temp);
+            DATA.city_weather = r.weather[0].description;
+            DATA.sun_rise = new Date(r.sys.sunrise * 1000).toLocaleString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: timezone,
+            });
+            DATA.sun_set = new Date(r.sys.sunset * 1000).toLocaleString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: timezone,
+            });
+            DATA.timeZone = timezone;
+        }
+    });
+    return DATA;
+}
+
+const getCity = async (latitude, longitude) => {
+    await fetch(
+        `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&appid=${OPEN_WEATHER_MAP_KEY}&units=metric&lang=fr`
+    )
+    .then(r => r.json())
+    .then(r => {
+        if (r[0].local_names.fr !== undefined) {
+            ville = r[0].local_names.fr
+        }
+        console.log("Ville = " + ville)
+    });
+    
+    return ville;
+}
+
 const actu = async () => {
     let date;
     date = new Date();
@@ -93,21 +133,6 @@ const actu = async () => {
     })
 }
 
-// const MatchFunc = (question, regExp) => {
-//     const questionRetravailler = question.normalize("NFD")
-//         .replaceAll(/[\u0300-\u036f]/g, "")
-//         .toLowerCase();
-//     console.log(questionRetravailler);
-//     const match = questionRetravailler.match(regExp);
-//     console.log('m = ' + match);
-//     if (match && match.length > 1) {
-//         ville = match[1];
-//         console.log(match);
-//     }
-//     console.log("Ville = " + ville);
-//     return ville;
-// }
-
 const RequestData = async (formdata) => {
     const requestOptions = {
         method: 'POST',
@@ -124,12 +149,12 @@ const RequestData = async (formdata) => {
         const entities = data.entity_list;  // Extract the list of entities
         
         if (entities.length > 0) {
-            const locationEntity = entities.find(entity => entity.form === 'Tours');  // Find the entity for 'Tours'
+            const locationEntity = entities.find(entity => entity.form);  // Find the entity for 'Tours'
             
             if (locationEntity) {
                 const location = locationEntity.form;  // Get the form of the location entity
                 console.log("Ville = " + location);
-                ville = location;
+                return location; // Retournez la valeur de l'emplacement
                 
                 // Vous pouvez ensuite utiliser la variable 'location' dans votre application
             } else {
@@ -144,7 +169,7 @@ const RequestData = async (formdata) => {
 };
 
 
-const Marv = async (question, timeZon, messageClient) => new Promise(async(resolve, reject) => {
+const Marv = async (question, timeZon, messageClient, latitude, longitude) => new Promise(async(resolve, reject) => {
 	console.log(question);
 
     if (messageClient.includes("actu") || messageClient.includes('nouvel') || messageClient.includes('information')) {
@@ -160,51 +185,39 @@ const Marv = async (question, timeZon, messageClient) => new Promise(async(resol
 
         console.log(newsToday);
     }
-
-    // if (ville == null || ville === 'undefined') {
-    //     const regExp = [
-    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*(?:à|de|pour|dans)\s*([\w\s-]+)$/i,
-    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*(?:à|de|pour|dans)\s*([\w\s-]+)\b/i,
-    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*(?:à|de|pour|dans)\s*([\w\s-]+)\b/i,
-    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*(?:à|de|pour|dans)\s*([\w\s-]+)$/i,
-    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)$/i,
-    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)\b/i,
-    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)\b/i,
-    //         /^([\w\s-]+)\s*(?:meteo|temps|heure|l'heure)/i,
-    //         /^([\w\s-]+)\s*(?:meteo|temps|heure|l'heure)$/i
-    //     ];
     
-    //     for (const regex of regExp) {
-    //         if (question.match(/(?:temps|météo|heure)/i)) {
-    //             const res = MatchFunc(messageClient, regex);
-    //             if (res) {
-    //                 ville = res;
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
-
     const formdata = new FormData();
     formdata.append("key", MEANINGCLOUD_KEY);
     formdata.append("txt", messageClient);
     formdata.append("lang", "fr"); 
     
-    await RequestData(formdata).then(() => {
-        console.log("Extraction terminée.");
-    });
+    let ville;
+
+    if (latitude !== undefined) {
+        console.log("crd = " + latitude + ' ' + longitude);
+
+        await setWeatherInformationCRD(latitude, longitude);
+        ville = await getCity(latitude, longitude);
+        
+        console.log(ville);
+    }
 
     let heure;
-    console.log('Ville = ' + ville);
-    if (ville !== undefined) {
+    const location = await RequestData(formdata);
+    if (location !== undefined) {
+        ville = location;
         await setWeatherInformation(ville.replaceAll(' ','%20'));
         console.log(DATA.timeZone)
         if (DATA.timeZone !== undefined) {
             console.log(DATA.timeZone);  
             heure = moment.tz(DATA.timeZone).format('HH:mm:ss');
             console.log(heure);
-        }    
-    } else {
+        }  
+    }
+
+    console.log('Ville = ' + ville);
+
+    if (ville == undefined) {
         const heureUTC = new Date();
         if (timeZon !== undefined || !Number.isInteger(timeZon)) {
             console.log(timeZon);

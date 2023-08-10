@@ -35,6 +35,8 @@ io.on("connection", (socket) => {
     console.log(arg.ip);
     console.log(arg.message);
     const messageClient = arg.message;
+    const latitude = arg.latitude;
+    const longitude = arg.longitude;
     db = database.createDbConnection();
     /*
     db.serialize(() => {
@@ -91,7 +93,8 @@ io.on("connection", (socket) => {
       message += "Historique des conversations : \n" + historic_total;
       
       if (response != "Message trop long" || response != "Une ligne du message est trop longue") {
-        response = await Marv(message, arg.tz, messageClient); 
+        console.log("CRD = " + latitude + ' ' + longitude);
+        response = await Marv(message, arg.tz, messageClient, latitude, longitude); 
         console.log(response);
         io.to(socket.id).emit('marv', response.replaceAll(arg.ip, "Utilisateur"));
         historic.push([arg.ip, ('Message de '+ arg.ip + ' ' + message + ' réponse de Marv ' + response + '\n').replaceAll("Historique des conversations : \n", "")]);

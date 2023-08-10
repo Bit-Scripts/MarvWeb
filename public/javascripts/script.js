@@ -9,7 +9,38 @@ let bw = false;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 let activeRecognition = false;
+let crd;
 
+const localisationOptions = {
+    enableHighAccuracy: true,
+    timeout: 5000,
+    maximumAge: 0,
+};
+
+const localisationSuccess = async (pos) => {
+    crd = pos.coords;
+
+    console.log("Votre position actuelle est :");
+    console.log(`Latitude : ${crd.latitude}`);
+    console.log(`Longitude : ${crd.longitude}`);
+    console.log(`La précision est de ${crd.accuracy} mètres.`);
+}
+
+const localisationError = (err) => {
+    console.warn(`ERREUR (${err.code}): ${err.message}`);
+}
+
+window.onload = async () => {
+    const getCoord = async () => {
+        const coord = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(localisationSuccess, localisationError, localisationOptions);
+        });
+        return coord;
+    }
+    console.log(crd);
+    crd = await getCoord();
+    console.log(crd);
+}
 
 showdown.extension('codehighlight', () => {
     const htmlunencode = (text) => {
@@ -128,7 +159,7 @@ const startButton = async (event) => {
 
     start_timestamp = event.timeStamp;
 
-    recognition.onresult = (event) => {
+    recognition.onresult = async (event) => {
         const ipString = document.getElementById("ip");
         let ip = ipString.innerHTML.replaceAll("`", "");
 
@@ -151,7 +182,8 @@ const startButton = async (event) => {
                 });
                 let tzOffset = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 console.log(tzOffset);
-                socket.emit('marv', { ip : ip, message : transcript, tz : tzOffset });
+                console.log("CRD = " + crd.latitude + ' ' + crd.longitude);
+                socket.emit('marv', { ip : ip, message : transcript, tz : tzOffset, latitude : crd.latitude, longitude : crd.longitude });
             }
         }
         if (history.selectionStart == history.selectionEnd) {
@@ -246,7 +278,7 @@ const preventMoving = (event) => {
     } 
 };
 
-const sendMessage = () => {
+const sendMessage = async () => {
     // Get the input field
     let input = document.getElementById("text-input");
     const history = document.getElementById("history");
@@ -266,9 +298,10 @@ const sendMessage = () => {
     const ipString = document.getElementById("ip");
     let ip = ipString.innerHTML.replaceAll("`", "");
     let tzOffset = new Date().getTimezoneOffset(),
-        tzInput = document.getElementById('tzOffset');
+    tzInput = document.getElementById('tzOffset');
     tzInput.value = tzOffset*(-1);
-    socket.emit('marv', { ip : ip, message : input.value, tz : tzInput.value });
+    console.log("CRD = " + crd.latitude + ' ' + crd.longitude);
+    socket.emit('marv', { ip : ip, message : input.value, tz : tzInput.value, latitude : crd.latitude, longitude : crd.longitude });
     input.value = "";
     if (history.selectionStart == history.selectionEnd) {
         history.scrollBottom = history.scrollHeight;

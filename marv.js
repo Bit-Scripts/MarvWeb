@@ -1,12 +1,15 @@
-const { OPENAI_API_KEY, organization, OPEN_WEATHER_MAP_KEY, API_NEWS } = require('./config.json');
+const { OPENAI_API_KEY, organization, OPEN_WEATHER_MAP_KEY, API_NEWS, MEANINGCLOUD_KEY } = require('./config.json');
 const { Configuration, OpenAIApi, OpenAIApiAxiosParamCreator } = require("openai");
 const moment = require('moment-timezone');
 const fetch = require('node-fetch');
 const { find } = require('geo-tz');
 const axios = require('axios');
+const FormData = require('form-data');
+const cities = require('cities.json');
 let response = [];
 let newsToday = "";
 const joursFeries = require("@socialgouv/jours-feries");
+let ville;
 
 const configuration = new Configuration({
 	organization: organization,
@@ -90,26 +93,61 @@ const actu = async () => {
     })
 }
 
-const MatchFunc = (question, regExp) => {
-    let ville;
-    const questionRetravailler = question.normalize("NFD")
-        .replaceAll(/[\u0300-\u036f]/g, "")
-        .toLowerCase();
-    console.log(questionRetravailler);
-    const match = questionRetravailler.match(regExp);
-    console.log('m = ' + match);
-    if (match && match.length > 1) {
-        ville = match[1];
-        console.log(match);
-    }
-    console.log(ville);
-    return ville;
-}
+// const MatchFunc = (question, regExp) => {
+//     const questionRetravailler = question.normalize("NFD")
+//         .replaceAll(/[\u0300-\u036f]/g, "")
+//         .toLowerCase();
+//     console.log(questionRetravailler);
+//     const match = questionRetravailler.match(regExp);
+//     console.log('m = ' + match);
+//     if (match && match.length > 1) {
+//         ville = match[1];
+//         console.log(match);
+//     }
+//     console.log("Ville = " + ville);
+//     return ville;
+// }
 
-const Marv = async (question, timeZon) => new Promise(async(resolve, reject) => {
+const RequestData = async (formdata) => {
+    const requestOptions = {
+        method: 'POST',
+        body: formdata,
+        redirect: 'follow',
+    };
+      
+    const endpoint = "https://api.meaningcloud.com/topics-2.0";
+      
+    try {
+        const response = await fetch(endpoint, requestOptions);
+        const data = await response.json();  // Parse the JSON response
+        
+        const entities = data.entity_list;  // Extract the list of entities
+        
+        if (entities.length > 0) {
+            const locationEntity = entities.find(entity => entity.form === 'Tours');  // Find the entity for 'Tours'
+            
+            if (locationEntity) {
+                const location = locationEntity.form;  // Get the form of the location entity
+                console.log("Ville = " + location);
+                ville = location;
+                
+                // Vous pouvez ensuite utiliser la variable 'location' dans votre application
+            } else {
+                console.log("Aucune entité de type 'Location' trouvée.");
+            }
+        } else {
+            console.log("Aucune entité trouvée dans la réponse.");
+        }
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+
+const Marv = async (question, timeZon, messageClient) => new Promise(async(resolve, reject) => {
 	console.log(question);
 
-    if (question.includes("actu") || question.includes('nouvel') || question.includes('information')) {
+    if (messageClient.includes("actu") || messageClient.includes('nouvel') || messageClient.includes('information')) {
         newsToday = "";
         const news = await actu();
         if (news !== undefined && typeof news !== 'string') {            
@@ -123,27 +161,38 @@ const Marv = async (question, timeZon) => new Promise(async(resolve, reject) => 
         console.log(newsToday);
     }
 
-    ﻿
-    const regExp = [
-        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)/i,
-        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)/i,
-        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?:a|en)\s*([\w\s-]+)$/i,
-        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?:a|en)\s*([\w\s]+(?:-[\w\s]+)*)/i,
-        /.*\b(?:meteo|temps|heure|l'heure)[^\n]*\b(?:a|en)\s*([\w\s]+(?:-[\w\s]+)*)$/i,
-        /^([\w\s-]+)\s*(?:meteo|temps|heure|l'heure)\s/i,
-        /^([\w\s-]+)\s*(?:meteo|temps|heure|l'heure)$/i
-    ];
+    // if (ville == null || ville === 'undefined') {
+    //     const regExp = [
+    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*(?:à|de|pour|dans)\s*([\w\s-]+)$/i,
+    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*(?:à|de|pour|dans)\s*([\w\s-]+)\b/i,
+    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*(?:à|de|pour|dans)\s*([\w\s-]+)\b/i,
+    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*(?:à|de|pour|dans)\s*([\w\s-]+)$/i,
+    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)$/i,
+    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)\b/i,
+    //         /(?:\bmeteo|temps|heure|l'heure)[^\n]*\b(?: )\s*([\w\s-]+)\b/i,
+    //         /^([\w\s-]+)\s*(?:meteo|temps|heure|l'heure)/i,
+    //         /^([\w\s-]+)\s*(?:meteo|temps|heure|l'heure)$/i
+    //     ];
+    
+    //     for (const regex of regExp) {
+    //         if (question.match(/(?:temps|météo|heure)/i)) {
+    //             const res = MatchFunc(messageClient, regex);
+    //             if (res) {
+    //                 ville = res;
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
 
-    let ville;
-    for (const regex of regExp) {
-      if (question.match(/(?:temps|météo|heure)/i)) {
-        const res = MatchFunc(question, regex);
-        if (res & res != 'est-il') {
-            ville = res;
-            break;
-        }
-      }
-    }
+    const formdata = new FormData();
+    formdata.append("key", MEANINGCLOUD_KEY);
+    formdata.append("txt", messageClient);
+    formdata.append("lang", "fr"); 
+    
+    await RequestData(formdata).then(() => {
+        console.log("Extraction terminée.");
+    });
 
     let heure;
     console.log('Ville = ' + ville);

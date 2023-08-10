@@ -34,6 +34,7 @@ io.on("connection", (socket) => {
   socket.on('marv', async (arg) => {
     console.log(arg.ip);
     console.log(arg.message);
+    const messageClient = arg.message;
     db = database.createDbConnection();
     /*
     db.serialize(() => {
@@ -90,7 +91,7 @@ io.on("connection", (socket) => {
       message += "Historique des conversations : \n" + historic_total;
       
       if (response != "Message trop long" || response != "Une ligne du message est trop longue") {
-        response = await Marv(message, arg.tz); 
+        response = await Marv(message, arg.tz, messageClient); 
         console.log(response);
         io.to(socket.id).emit('marv', response.replaceAll(arg.ip, "Utilisateur"));
         historic.push([arg.ip, ('Message de '+ arg.ip + ' ' + message + ' réponse de Marv ' + response + '\n').replaceAll("Historique des conversations : \n", "")]);

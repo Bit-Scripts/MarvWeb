@@ -217,22 +217,17 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude) => ne
 
     console.log('Ville = ' + ville);
 
-    if (ville == undefined) {
-        const heureUTC = new Date();
-        if (timeZon !== undefined || !Number.isInteger(timeZon)) {
-            console.log(timeZon);
-            heure = moment.utc().add(timeZon, 'minutes').format('HH:mm:ss');
-        } else {
-            heure = "Vous devez autoriser le partage de votre position"       
-            console.log(heure);
-        }         
-    }
+    if ( heure === undefined && (timeZon !== undefined || !Number.isInteger(timeZon)) ) {
+        console.log(timeZon);
+        heure = moment.utc().add(timeZon, 'minutes').format('HH:mm:ss');
+    }         
+
     var meteoDate = "";
     
     console.log(heure)
 
     if (heure != undefined) {
-        meteoDate += `heure à l'emplacement de l'utilisateur : ${heure}\n;`;
+        meteoDate += `heure à ${ville} : ${heure}\n;`;
     }
 
     if (newsToday != undefined) {

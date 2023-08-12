@@ -11,11 +11,66 @@ const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammar
 let activeRecognition = false;
 let crd;
 
+let soundMenuOpen = false;
+let accessMenuOpen = false;
+
 const localisationOptions = {
     enableHighAccuracy: true,
     timeout: 5000,
     maximumAge: 0,
 };
+
+const soundMenu = (event) => {
+    event.stopPropagation();
+    const talkButton = document.getElementById('talk');
+    const speechButton = document.getElementById('speech');
+    if (!soundMenuOpen) {
+        talkButton.style.display = 'block';
+        speechButton.style.display = 'block';
+    } else {
+        talkButton.style.display = 'none';
+        speechButton.style.display = 'none';
+    }
+    soundMenuOpen = !soundMenuOpen;
+}
+
+const accessMenu = (event) => {
+    event.stopPropagation();
+    const bwButton = document.getElementById('bw');
+    const wbButton = document.getElementById('wb');
+    const colorButton = document.getElementById('color');
+    if (!accessMenuOpen) {
+        bwButton.style.display = 'block';
+        wbButton.style.display = 'block';
+        colorButton.style.display = 'block';
+    } else {
+        bwButton.style.display = 'none';
+        wbButton.style.display = 'none';
+        colorButton.style.display = 'none';
+    }
+    accessMenuOpen = !accessMenuOpen;
+}
+
+document.addEventListener("click", function(event) {
+    event.stopPropagation();
+    const talkButton = document.getElementById('talk');
+    const speechButton = document.getElementById('speech');
+    const bwButton = document.getElementById('bw');
+    const wbButton = document.getElementById('wb');
+    const colorButton = document.getElementById('color');
+    if (soundMenuOpen) {
+        talkButton.style.display = 'none';
+        speechButton.style.display = 'none';
+        soundMenuOpen = !soundMenuOpen;
+    }
+    if (accessMenuOpen) {
+        bwButton.style.display = 'none';
+        wbButton.style.display = 'none';
+        colorButton.style.display = 'none';
+        accessMenuOpen = !accessMenuOpen;
+    }
+});
+
 
 const localisationSuccess = async (pos) => {
     crd = pos.coords;
@@ -139,6 +194,7 @@ const voicesLoader = new Promise((resolve, reject) => {
 });
 
 const startButton = async (event) => {
+    event.stopPropagation();
     await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     activeRecognition = !activeRecognition;
     recognition = new SpeechRecognition();
@@ -243,6 +299,7 @@ const syntheseVocale = async (text) => {
 } 
 
 const toggleSynth = (event) => {
+    event.stopPropagation();
     const speech = document.getElementById('speech');
     if (authorizeToSpeak) {
         synth.cancel();
@@ -308,7 +365,8 @@ const sendMessage = async () => {
     }
 };
 
-const blackAndWhite = () => {
+const blackAndWhite = (event) => {
+    event.stopPropagation();
     document.getElementById('color-css').href='/stylesheets/bw-var.css';
     document.getElementById('botbouche').src='images/BotAvatarLight.png';
     document.getElementById('bot').src='images/botavatarLight-default.png';
@@ -319,21 +377,23 @@ const blackAndWhite = () => {
     wb = false;
 }
 
-const whiteAndBlack = () => {
+const whiteAndBlack = (event) => {
+    event.stopPropagation();
     document.getElementById('color-css').href='/stylesheets/wb-var.css';
     document.getElementById('botbouche').src='images/BotAvatarDark.png';
     document.getElementById('bot').src='images/botavatar.png';
     document.body.style.background="0";
-    document.body.style.backgroundColor = "var(--main-bg-color)";
+    document.body.style.backgroundColor = "var(--main-bg-color);";
     normal = false;
     wb = true;
     bw = false;
 }
 
-const color = () => {
+const color = (event) => {
+    event.stopPropagation();
     document.getElementById('color-css').href='/stylesheets/color-var.css';
-    document.getElementById('botbouche').src='botavata-bouche.png';
     document.getElementById('bot').src='images/botavatar.png';
+    document.getElementById('botbouche').src='images/botavatar-bouche.png';
     document.body.style.background = "url('../images/computing.jpeg') no-repeat fixed center";
     document.body.style.backgroundSize = "cover";
     document.body.style.backgroundColor = "var(--main-bg-color)";

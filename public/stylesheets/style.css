@@ -347,6 +347,10 @@ div::-webkit-scrollbar-track {
     text-shadow: none;
 }
 
+button:hover {
+    cursor: pointer;
+}
+
 @media screen and (min-width: 900px) {
     body {
         overflow: auto;

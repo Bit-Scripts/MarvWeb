@@ -339,29 +339,30 @@ const sendMessage = async () => {
     // Get the input field
     let input = document.getElementById("text-input");
     const history = document.getElementById("history");
+    if (input.value != '' && input.value != ' ') {
+        history.innerHTML += "<br/>__________________________________________________________";
+        const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
+        text      = input.value,
+        html      = converter.makeHtml(text);
+        converter.setFlavor('github');
+        history.innerHTML += "<br/><br/>User : ";
+        history.innerHTML += html;
+        history.scrollTo({
+            top: history.scrollHeight,
+            behavior: 'smooth'
+        });
 
-    history.innerHTML += "<br/>__________________________________________________________";
-    const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
-    text      = input.value,
-    html      = converter.makeHtml(text);
-    converter.setFlavor('github');
-    history.innerHTML += "<br/><br/>User : ";
-    history.innerHTML += html;
-    history.scrollTo({
-        top: history.scrollHeight,
-        behavior: 'smooth'
-    });
-
-    const ipString = document.getElementById("ip");
-    let ip = ipString.innerHTML.replaceAll("`", "");
-    let tzOffset = new Date().getTimezoneOffset(),
-    tzInput = document.getElementById('tzOffset');
-    tzInput.value = tzOffset*(-1);
-    console.log("CRD = " + crd.latitude + ' ' + crd.longitude);
-    socket.emit('marv', { ip : ip, message : input.value, tz : tzInput.value, latitude : crd.latitude, longitude : crd.longitude });
-    input.value = "";
-    if (history.selectionStart == history.selectionEnd) {
-        history.scrollBottom = history.scrollHeight;
+        const ipString = document.getElementById("ip");
+        let ip = ipString.innerHTML.replaceAll("`", "");
+        let tzOffset = new Date().getTimezoneOffset(),
+        tzInput = document.getElementById('tzOffset');
+        tzInput.value = tzOffset*(-1);
+        console.log("CRD = " + crd.latitude + ' ' + crd.longitude);
+        socket.emit('marv', { ip : ip, message : input.value, tz : tzInput.value, latitude : crd.latitude, longitude : crd.longitude });
+        input.value = "";
+        if (history.selectionStart == history.selectionEnd) {
+            history.scrollBottom = history.scrollHeight;
+        }
     }
 };
 

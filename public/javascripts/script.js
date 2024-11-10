@@ -269,7 +269,7 @@ const startButton = async (event) => {
 }
 
 voicesLoader.then(voices => {
-    voice = voices.find(el => el.name === "Microsoft Paul - French (France)");
+    voice = voices.find(el => el.name === "Microsoft Julie - French (France)");
     if(!voice) voice = voices.find(el => el.name === "Microsoft Hortense Desktop - French");
     if(!voice) voice = voices.find(el => el.name === "Google français");
 });
@@ -402,3 +402,34 @@ const color = (event) => {
     wb = false;
     bw = false;
 }
+
+const changePrompt = (event) => {
+    event.stopPropagation();
+    var formPrompt = document.getElementById('formPrompt');
+    if (formPrompt.style.display === "none" || formPrompt.style.display === "") {
+        formPrompt.style.display = "flex"; // Ou "flex", "inline", etc., selon le style que vous souhaitez
+    } else {
+        formPrompt.style.display = "none";
+    }
+}
+
+// document.addEventListener('DOMContentLoaded', function() {
+//     document.getElementById('formPrompt').addEventListener('submit', function(e) {
+//       e.preventDefault(); // Empêche le comportement de soumission par défaut
+//       var prompt = this.elements.prompt.value;
+  
+//       // Envoyer la valeur de prompt au serveur via WebSocket
+//       socket.emit('promptValue', { prompt: prompt });
+  
+//       // Vous pouvez également conserver le fetch si vous souhaitez envoyer les données à une autre route /store-prompt
+//       fetch('/store-prompt', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json'
+//         },
+//         body: JSON.stringify({ prompt: prompt })
+//       })
+//       .then(response => response.text())
+//       .then(data => console.log(data));
+//     });
+// });

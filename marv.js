@@ -96,12 +96,14 @@ const getCity = async (latitude, longitude) => {
     )
     .then(r => r.json())
     .then(r => {
-        if (r[0].local_names.fr !== undefined) {
-            ville = r[0].local_names.fr
+        if (r[0].local_names !== undefined) {
+            if (r[0].local_names.fr !== undefined) {
+                ville = r[0].local_names.fr
+            }
+            console.log("Ville = " + ville)
         }
-        console.log("Ville = " + ville)
     });
-    
+    if (ville == undefined) ville = "Paris";
     return ville;
 }
 
@@ -118,7 +120,7 @@ const actu = async () => {
     return await axios.get(`http://api.mediastack.com/v1/news?access_key=${API_NEWS}&countries=fr&limit=8&sources=-franceantilles&date=${date}`)
     .then((response) => {
         response = response.data.data;
-        if (response !== []) {
+        if (response !== null && response !== undefined && response.length > 0) {
             console.log("Titre = " + response[0].title + " ; url = " + response[0].url);
             return response;
         } else {
@@ -169,93 +171,99 @@ const RequestData = async (formdata) => {
 };
 
 
-const Marv = async (question, timeZon, messageClient, latitude, longitude) => new Promise(async(resolve, reject) => {
+const Marv = async (question, timeZon, messageClient, latitude, longitude, customPrompt) => new Promise(async(resolve, reject) => {
 	console.log(question);
-
-    if (messageClient.includes("actu") || messageClient.includes('nouvel') || messageClient.includes('information')) {
-        newsToday = "";
-        const news = await actu();
-        if (news !== undefined && typeof news !== 'string') {            
-            for(let i = 0 ; i < news.length ; i++) {
-                newsToday += "Titre = " + news[i].title + " ; source = " + news[i].source + " ; url = " + news[i].url + "\n";
-            };
-        } else {
-            newsToday = "Pas d'actualité pour le moment";
+    try {
+        const promptToUse = customPrompt || personality;
+        if (messageClient.includes("actu") || messageClient.includes('nouvel') || messageClient.includes('information')) {
+            newsToday = "";
+            const news = await actu();
+            if (news !== undefined && typeof news !== 'string') {            
+                for(let i = 0 ; i < news.length ; i++) {
+                    newsToday += "Titre = " + news[i].title + " ; source = " + news[i].source + " ; url = " + news[i].url + "\n";
+                };
+            } else {
+                newsToday = "Pas d'actualité pour le moment";
+            }
+    
+            console.log(newsToday);
         }
-
-        console.log(newsToday);
-    }
-    
-    const formdata = new FormData();
-    formdata.append("key", MEANINGCLOUD_KEY);
-    formdata.append("txt", messageClient);
-    formdata.append("lang", "fr"); 
-    
-    let ville;
-
-    if (latitude !== undefined) {
-        console.log("crd = " + latitude + ' ' + longitude);
-
-        await setWeatherInformationCRD(latitude, longitude);
-        ville = await getCity(latitude, longitude);
         
-        console.log(ville);
-    }
-
-    let heure;
-    const location = await RequestData(formdata);
-    if (location !== undefined) {
-        ville = location;
-        await setWeatherInformation(ville.replaceAll(' ','%20'));
-        console.log(DATA.timeZone)
-        if (DATA.timeZone !== undefined) {
-            console.log(DATA.timeZone);  
-            heure = moment.tz(DATA.timeZone).format('HH:mm:ss');
-            console.log(heure);
-        }  
-    }
-
-    console.log('Ville = ' + ville);
-
-    if ( heure === undefined && (timeZon !== undefined || !Number.isInteger(timeZon)) ) {
-        console.log(timeZon);
-        heure = moment.utc().add(timeZon, 'minutes').format('HH:mm:ss');
-    }         
-
-    var meteoDate = "";
+        const formdata = new FormData();
+        formdata.append("key", MEANINGCLOUD_KEY);
+        formdata.append("txt", messageClient);
+        formdata.append("lang", "fr"); 
+        
+        let ville;
     
-    console.log(heure)
-
-    if (heure != undefined) {
-        meteoDate += `heure à ${ville} : ${heure}\n;`;
-    }
-
-    if (newsToday != undefined) {
-        meteoDate += `Nouvelles Actualités : \n${newsToday}\n`;
-    }
-    if (DATA.city_temperature != undefined) {
-        meteoDate += `
-        Météo à ${ville} : 
-        Actuellement à ${ville} : 
-        il fait ${DATA.city_temperature} 
-        le temps est ${DATA.city_weather} 
-        et aujourd'hui, 
-        le levé du soleil est à ${DATA.sun_rise} 
-        et le couché est à ${DATA.sun_set}.`;
-    }
-
-    gptResponse = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo-0613",
-    messages: [
-        { role: "system", content: personality },  
-        { role: "assistant", content: meteoDate },
-        { role: "user", content: question }
-        ]
-    });
-
-
-    let laReponse = gptResponse.data.choices[0].message.content;
-    resolve(laReponse);    
+        if (latitude !== undefined) {
+            console.log("crd = " + latitude + ' ' + longitude);
+    
+            await setWeatherInformationCRD(latitude, longitude);
+            ville = await getCity(latitude, longitude);
+            
+            console.log(ville);
+        }
+    
+        let heure;
+        const location = await RequestData(formdata);
+        if (location !== undefined) {
+            ville = location;
+            await setWeatherInformation(ville.replaceAll(' ','%20'));
+            console.log(DATA.timeZone)
+            if (DATA.timeZone !== undefined) {
+                console.log(DATA.timeZone);  
+                heure = moment.tz(DATA.timeZone).format('HH:mm:ss');
+                console.log(heure);
+            }  
+        }
+    
+        console.log('Ville = ' + ville);
+    
+        if ( heure === undefined && (timeZon !== undefined || !Number.isInteger(timeZon)) ) {
+            console.log(timeZon);
+            heure = moment.utc().add(timeZon, 'minutes').format('HH:mm:ss');
+        }         
+    
+        var meteoDate = "";
+        
+        console.log(heure)
+    
+        if (heure != undefined) {
+            meteoDate += `heure à ${ville} : ${heure}\n;`;
+        }
+    
+        if (newsToday != undefined) {
+            meteoDate += `Nouvelles Actualités : \n${newsToday}\n`;
+        }
+        if (DATA.city_temperature != undefined) {
+            meteoDate += `
+            Météo à ${ville} : 
+            Actuellement à ${ville} : 
+            il fait ${DATA.city_temperature} 
+            le temps est ${DATA.city_weather} 
+            et aujourd'hui, 
+            le levé du soleil est à ${DATA.sun_rise} 
+            et le couché est à ${DATA.sun_set}.`;
+        }
+    
+        console.log("promptToUse :", promptToUse);
+    
+        gptResponse = await openai.createChatCompletion({
+        model: "gpt-4",
+        messages: [
+            { role: "system", content: promptToUse },  
+            { role: "assistant", content: meteoDate },
+            { role: "user", content: question }
+            ]
+        });
+    
+    
+        let laReponse = gptResponse.data.choices[0].message.content;
+        resolve(laReponse);  
+    } catch (e) {
+        console.log('une erreur s\'est produit lors de l\'appelle à l\'API de chatGPT :', e)
+    }  
 });
 
 module.exports = { Marv }

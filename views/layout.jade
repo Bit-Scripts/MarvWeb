@@ -8,12 +8,9 @@ html
     link(rel='stylesheet', id='color-css', href='/stylesheets/color-var.css')
     link(rel='stylesheet', href='/stylesheets/style.css')
     link(rel='stylesheet' href='/javascripts/highlight/styles/atom-one-dark.min.css')
-    - var hisghtlightjs = '/javascripts/highlight/highlight.min.js'
-    script(src=hisghtlightjs)
-    script(src='https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js')  
-    - var socket = '/socket.io/socket.io.js'
-    script(src=socket)
-    - var js = 'javascripts/script.js'
-    script(src=js)
+    script(src='/javascripts/highlight/highlight.min.js')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js')
+    script(src='/socket.io/socket.io.js')
+    script(src='/javascripts/script.js')
   body
     block content

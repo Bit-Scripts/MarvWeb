@@ -9,22 +9,26 @@ block content
     img(src=imgbouche id='botbouche')  
     div(id="title")
       h1(id='welcome') Marv Bot
-      p(id='welcome') Welcome to Marv Bot
     div(id='soundContainer')
       button(type='button', id='soundButton', onclick='soundMenu(event)') Son
       button(type='button', id='talk', onclick='startButton(event)') 
         i(class="fa-solid fa-microphone")
       button(type='button', id='speech', onclick='toggleSynth(event)') 
         i(class="fa-solid fa-volume-high")
-      div(id='accessContainer')
-        button(type='button', id='accessButton', onclick='accessMenu(event)') Acces#[br]sibilité
-        button(type='button', id='bw', onclick='blackAndWhite(event)')
-          i(class="fas fa-low-vision")
-        button(type='button', id='wb', onclick='whiteAndBlack(event)')
-          i(class="fas fa-low-vision")
-        button(type='button', id='color', onclick='color(event)')
-          i(class="fas fa-eye")
-      p(id="disclaimer") Pour avoir la meilleure expérience possible, nous vous recommandons d'utiliser Google Chrome 
+    div(id='accessContainer')
+      button(type='button', id='accessButton', onclick='accessMenu(event)') Accessibilité
+      button(type='button', id='bw', onclick='blackAndWhite(event)')
+        i(class="fas fa-low-vision")
+      button(type='button', id='wb', onclick='whiteAndBlack(event)')
+        i(class="fas fa-low-vision")
+      button(type='button', id='color', onclick='color(event)')
+        i(class="fas fa-eye")
+    div(id='promptContainer')
+      button(type='button', id='promptButton', onclick='changePrompt(event)')  Changer prompt 
+        i(class="fa-solid fa-gears") 
+      form(action="/store-prompt" id='formPrompt' method="post")
+        textarea(type="text" name="prompt" placeholder="Ecrire un prompt personnalisé")
+        button(type="submit" id='savePrompt') Stocker le Prompt
   div(id="history"  markdown="1" class="language-html")
   div(id='messageSend')
     textarea(id="text-input" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])" onkeyup="preventMoving(event)" placeholder="Posez-votre question ici... ?")
@@ -35,3 +39,39 @@ block content
     - var url = 'privacy';
     a(id="privacy-index" href="/" + url) Politique de Confidentialité et CGU
     p(id="copyright") © Bit Scripts (Edited by Paullux) 2023 - Tous droits réservés - All rights reserved
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('formPrompt').addEventListener('submit', async function(e) { // Ajout du mot-clé 'async'
+        e.preventDefault(); // Empêche le comportement de soumission par défaut
+        var prompt = this.elements.prompt.value;
+        socket.emit('promptValue', { prompt: prompt });
+
+        // Créer le corps de la requête en utilisant URLSearchParams
+        var formData = new URLSearchParams();
+        formData.append('prompt', prompt);
+        console.log('prompt en front', prompt);
+
+        try {
+          const response = await fetch('/store-prompt', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.text();
+          console.log(data);
+
+          // Gérer la réponse ici, par exemple, mettre à jour l'interface utilisateur
+
+        } catch (error) {
+          console.error('Erreur lors de l’envoi du formulaire : ', error);
+          // Gérer l'erreur ici, par exemple, afficher un message d'erreur à l'utilisateur
+        }
+      });
+    });

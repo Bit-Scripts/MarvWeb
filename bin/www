@@ -5,6 +5,7 @@
  */
 
 const { Marv } = require('../marv.js');
+const promptStore = require('../promptStore.js');
 var app = require('../app');
 var debug = require('debug')('apptest:server');
 var http = require('http');
@@ -12,6 +13,8 @@ const { Server } = require('socket.io');
 var { getToken } = require('../routes/index.js');
 var tokenOrig = getToken();
 let tokenBDD;
+let customPrompt = null;
+let lastPrompt = "";
 const fs = require("fs");
 const database = require('../db.js');
 var historic = [];
@@ -28,9 +31,24 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
 const io = new Server(server);
 
 io.on("connection", (socket) => {
+  // Gestionnaire pour changer le prompt
+  const savedPrompt = promptStore.getPrompt();
+  socket.on('promptValue', (data) => {
+    customPrompt = data?.prompt ? data.prompt : savedPrompt;
+    console.log('Prompt personnalisé reçu via Socket.io:', customPrompt);
+  });
   socket.on('marv', async (arg) => {
     console.log(arg.ip);
     console.log(arg.message);
@@ -94,26 +112,19 @@ io.on("connection", (socket) => {
       
       if (response != "Message trop long" || response != "Une ligne du message est trop longue") {
         console.log("CRD = " + latitude + ' ' + longitude);
-        response = await Marv(message, arg.tz, messageClient, latitude, longitude); 
+        response = await Marv(message, arg.tz, messageClient, latitude, longitude, customPrompt); 
         console.log(response);
         io.to(socket.id).emit('marv', response.replaceAll(arg.ip, "Utilisateur"));
-        historic.push([arg.ip, ('Message de '+ arg.ip + ' ' + message + ' réponse de Marv ' + response + '\n').replaceAll("Historique des conversations : \n", "")]);
+        historic.push([arg.ip, ('Message de '+ arg.ip + ' ' + message + ' réponse du Bot ' + response + '\n').replaceAll("Historique des conversations : \n", "")]);
       } else {
         io.to(socket.id).emit('marv', response);
       }
     } else {
-      io.to(socket.id).emit('marv', 'Message non autorisé, veuillez recharger la page ! La mémoire de Marv a été réinitialisé');
+      io.to(socket.id).emit('marv', 'Message non autorisé, veuillez recharger la page ! La mémoire du Bot a été réinitialisé');
     }
   })
 });
 
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
 
 /**
  * Normalize a port into a number, string, or false.

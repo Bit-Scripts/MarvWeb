@@ -20,6 +20,14 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Marv Web', ip: `${ip}` });
 });
 
+router.post('/store-prompt', function(req, res) {
+  const prompt = req.body.prompt;
+  console.log('prompt :', prompt)
+  // Logique pour traiter le prompt
+  res.cookie('chatgptPrompt', prompt, { maxAge: 900000, httpOnly: true });
+  res.send('Prompt stocké dans un cookie');
+});
+
 /* GET privacy policy and terms of service page. */
 router.get('/privacy', function(req, res, next) {
   res.render('privacy', { title: 'Politique de Confidentialité & CGU' });

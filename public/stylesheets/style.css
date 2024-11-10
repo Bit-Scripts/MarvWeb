@@ -1,7 +1,7 @@
 body {
     padding:0;
     margin:0;
-    height: 100vh;
+    height: auto;
     width: 100vw;
     background: url('../images/computing.jpeg') no-repeat fixed center;
     background-color: var(--main-bg-color) !important;
@@ -19,18 +19,18 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: space-around;
-    margin-left: -10px;
+    margin-left: calc((100vw - 645px) /2);
     position: relative;
 }
 
 #soundButton {
-    font-size: 1.5em;
+    font-size: 1.3em;
     font-weight: 800;
-    width: 80px;
+    width: 160px;
     height: 80px;
     border-color: var(--border-color);
     border: solid 5px;
-    border-radius: 50%;
+    border-radius: 10px;
     background-color: var(--main-bg-color);
     color: var(--color-text);
     z-index: 25;
@@ -76,19 +76,19 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: space-around;
-    margin-left: 160px;
+    margin-left: 165px;
     position: relative;
 }
 
 #accessButton {
-    font-size: 1.2em;
+    font-size: 1.3em;
     font-weight: 800;
-    width: 80px;
+    width: 160px;
     height: 80px;
-    margin-left: 15px;
+    margin-left: 5vw;
     border-color: var(--border-color);
     border: solid 5px;
-    border-radius: 50%;
+    border-radius: 10px;
     background-color: var(--main-bg-color);
     color: var(--color-text);
     z-index: 25;
@@ -100,7 +100,7 @@ body {
     border-color: var(--border-color);
     border: solid 5px;
     background-color: white;
-    margin-left: 15px;
+    margin-left: 95px;
     width: 80px;
     height: 80px;
     margin-top: calc(90px + 80px);
@@ -117,7 +117,7 @@ body {
     border-color: var(--border-color);
     border: solid 5px;
     background-color: black;
-    margin-left: 15px;
+    margin-left: 95px;
     width: 80px;
     height: 80px;
     margin-top: calc(180px + 160px);
@@ -134,7 +134,7 @@ body {
     border-color: var(--border-color);
     border: solid 5px;
     background-color: #070D;
-    margin-left: 15px;
+    margin-left: 95px;
     width: 80px;
     height: 80px;
     margin-top: calc(360px + 160px);
@@ -144,6 +144,65 @@ body {
     z-index: 25;
     font-size: 40px;
     border-radius: 50%;
+}
+
+#promptContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    margin-left: 15vw;
+    position: relative;
+}
+
+#promptButton {
+    font-size: 1.3em;
+    font-weight: 800;
+    width: 160px;
+    height: 80px;
+    margin-left: 10vw;
+    border-color: var(--border-color);
+    border: solid 5px;
+    border-radius: 10px;
+    background-color: var(--main-bg-color);
+    color: var(--color-text);
+    z-index: 25;
+    position: absolute;
+}
+
+form {
+    display: none;
+    flex-direction: column;
+    top: 100px;
+    position: absolute;
+    right: 15px;
+    z-index: 25;
+}
+
+form textarea {
+    height: 190px;
+    width: 60vw;
+    font-size: 2em;
+    font-weight: 600;
+    border-color: var(--border-color);
+    background-color: var(--main-bg-color);
+    border: solid 5px;
+    border-radius: 10px;
+    position: relative;
+}
+
+#savePrompt {
+    top: 0;
+    width: 160px;
+    height: 60px;
+    font-size: 1.2em;
+    font-weight: 600;
+    left: calc(60vw - 150px);
+    border-color: var(--border-color);
+    background-color: var(--main-bg-color);
+    border: solid 5px;
+    border-radius: 10px;
+    position: relative;
 }
 
 h1 {
@@ -167,6 +226,7 @@ h1 {
     display:flex;
     flex-direction: row;
     align-items: center;
+    width: 100vw;
 }
 
 #bot {
@@ -187,8 +247,6 @@ h1 {
     z-index: 2;
 }
 
-
-
 #history {
     background-color: var(--color-bg-history);
     backdrop-filter: blur(15px);
@@ -201,7 +259,8 @@ h1 {
     width: 95vw;
     height: 57vh;
     padding: 1vw;
-    font-size: 1em;
+    font-size: 1.5em;
+    font-weight: 900;
     margin-right: 60vw;
     font-weight: bold;
     overflow-x: hidden;
@@ -222,6 +281,8 @@ h1 {
 
 #text-input::placeholder {
     color: var(--color-text);
+    font-size: 1.5em;
+    font-weight: 900;
 }
 
 #text-input {
@@ -230,7 +291,8 @@ h1 {
     width: 100%;
     height: 10vh;
     margin: 15px;
-    font-size: 1em;
+    font-size: 1.5em;
+    font-weight: 900;
     border-radius: 20px;
     color: var(--color-text);
     background-color: var(--color-bg-history);
@@ -247,31 +309,25 @@ h1 {
     height: 10vh;
     margin: 15px;
     font-size: 1.5em;
+    font-weight: 900;
     border-radius: 20px;
 }
 
-#copyright {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    margin-right: 1vw;
-    margin-left: 80vw;
-    color:var(--cr-and-disclaim);
-    z-index: 500;
-    font-weight: bold;
-    text-align: center
+footer {
+    height: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: start;
 }
 
-#disclaimer {
-    position: fixed;
-    text-align: justify;
+#copyright {
+    margin-right: 10px;
+    height: 2em;
+    width: 25vw;
+    color:var(--cr-and-disclaim);
     font-weight: bold;
-    z-index: 500;
-    right: 10px;
-    top: -10px;
-    margin-left: 75vw;
-    color: var(--cr-and-disclaim);
-    text-shadow: var(--text-shadow) 1px 0 10px;
+    margin-right: 10px;
 }
 
 pre {
@@ -303,13 +359,12 @@ div::-webkit-scrollbar-track {
 }
 
 #privacy-index {
-    position: fixed;
     color:var(--cr-and-disclaim);
-    z-index: 500;
+    width: auto;
+    height: 2em;
     font-weight: bold;
     background-color: #444444cc;
-    bottom: 10px;
-    left: 10px;
+    margin-left: 10px;
 }
 
 #privacy {
@@ -351,16 +406,76 @@ button:hover {
     cursor: pointer;
 }
 
-@media screen and (min-width: 900px) {
+@media screen and (min-width: 465px) and (max-width: 900px) {
     body {
         overflow: auto;
     }
-    #history {
+
+    #soundButton {
         font-size: 1.5em;
+    }
+
+    #accessButton {
+        font-size: 1.5em;
+    }
+    #history {
+        font-size: 25pt !important;
+        font-weight: 900;
+    }
+    #text-input::placeholder {
+        font-size: 25pt;
         font-weight: 900;
     }
     #text-input {
-        font-size: 2.5em;
+        font-size: 25pt;
         font-weight: 900;
+    }
+
+    #copyright {
+        font-size: 1.5em;
+    }
+    #privacy-index {
+        font-size: 1.5em;
+    }
+}
+
+@media screen and (max-width: 465px) {
+    body {
+        overflow: auto;
+    }
+
+    #soundButton {
+        font-size: 2.5em;
+    }
+
+    #accessButton {
+        font-size: 2.5em;
+    }
+    #history {
+        font-size: 55pt;
+        font-weight: 900;
+    }
+    #text-input::placeholder {
+        font-size: 55pt;
+        font-weight: 900;
+    }
+    #text-input {
+        font-size: 55pt;
+        font-weight: 900;
+    }
+
+    footer {
+        font-size: 4.5em;
+    }
+    #privacy-index {
+        height: 3.5em;
+        width: 35vw;
+    }
+
+    #copyright {
+        font-size: 2.5em;
+    }
+    #privacy-index {
+        font-size: 2.5em;
     }
 }

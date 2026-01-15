@@ -34,7 +34,7 @@
     "node-mp3-player": "^1.0.3",
     "node-nlp": "^3.10.2",
     "node-nlp-rn": "^3.5.2",
-    "openai": "^3.3.0",
+    "openai": "^4.104.0",
     "path": "^0.12.7",
     "pug": "^3.0.3",
     "range_check": "^0.0.4",

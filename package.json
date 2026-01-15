@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "build": "node -e \"console.log('skip build')\""
+    "build": "node build-pug.js"
   },
   "dependencies": {
     "@google-cloud/text-to-speech": "^4.2.3",

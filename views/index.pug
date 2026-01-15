@@ -1,7 +1,8 @@
 extends layout
 
 block content
-  div(id="ip") `#{ip}`
+  div(id="ip") #{ip}
+  div(id="token" style="display:none") #{token}
   div(id="containerBot")
     - var img = "images/botavatar.png"
     img(src=img id='bot')
@@ -41,6 +42,8 @@ block content
     p(id="copyright") © Bit Scripts (Edited by Paullux) 2023 - Tous droits réservés - All rights reserved
   script.
     document.addEventListener('DOMContentLoaded', function() {
+      const token = document.getElementById('token')?.textContent?.trim();
+      if (token) localStorage.setItem('marvToken', token);
       document.getElementById('formPrompt').addEventListener('submit', async function(e) { // Ajout du mot-clé 'async'
         e.preventDefault(); // Empêche le comportement de soumission par défaut
         var prompt = this.elements.prompt.value;

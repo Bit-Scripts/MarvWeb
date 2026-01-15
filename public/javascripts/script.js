@@ -85,43 +85,49 @@ const localisationError = (err) => {
     console.warn(`ERREUR (${err.code}): ${err.message}`);
 }
 
+const getCoord = () => new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+        (pos) => { crd = pos.coords; resolve(crd); },
+        reject,
+        localisationOptions
+    );
+});
+
+
 window.onload = async () => {
-    const getCoord = async () => {
-        const coord = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(localisationSuccess, localisationError, localisationOptions);
-        });
-        return coord;
+    try {
+        crd = await getCoord();
+        console.log("CRD loaded", crd);
+    } catch (e) {
+        console.warn("No geoloc", e);
     }
-    console.log(crd);
-    crd = await getCoord();
-    console.log(crd);
-}
+};
 
 showdown.extension('codehighlight', () => {
     const htmlunencode = (text) => {
-      return (
-        text
-          .replaceAll(/&amp;/g, '&')
-          .replaceAll(/&lt;/g, '<')
-          .replaceAll(/&gt;/g, '>')
-        );
-    }
-    return [
-      {
-        type: 'output',
-        filter: (text, converter, options) => {
-            // use new shodown's regexp engine to conditionally parse codeblocks
-            const left  = '<pre><code\\b[^>]*>',
-                right = '</code></pre>',
-                flags = 'g',
-                replacement = function (wholeMatch, match, left, right) {
-                    // unescape match to prevent double escaping
-                    match = htmlunencode(match);
-                    return left + hljs.highlightAuto(match).value + right;
-                };
-            return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
+        return (
+            text
+            .replaceAll(/&amp;/g, '&')
+            .replaceAll(/&lt;/g, '<')
+            .replaceAll(/&gt;/g, '>')
+            );
         }
-      }
+        return [
+        {
+            type: 'output',
+            filter: (text, converter, options) => {
+                // use new shodown's regexp engine to conditionally parse codeblocks
+                const left  = '<pre><code\\b[^>]*>',
+                    right = '</code></pre>',
+                    flags = 'g',
+                    replacement = function (wholeMatch, match, left, right) {
+                        // unescape match to prevent double escaping
+                        match = htmlunencode(match);
+                        return left + hljs.highlightAuto(match).value + right;
+                    };
+                return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
+            }
+        }
     ];
 });
 
@@ -239,7 +245,14 @@ const startButton = async (event) => {
                 let tzOffset = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 console.log(tzOffset);
                 console.log("CRD = " + crd.latitude + ' ' + crd.longitude);
-                socket.emit('marv', { ip : ip, message : transcript, tz : tzOffset, latitude : crd.latitude, longitude : crd.longitude });
+                socket.emit('marv', {
+                    ip: document.getElementById('ip').textContent.trim(),
+                    token: localStorage.getItem('marvToken'),
+                    message: transcript,              // <- au lieu de text-input
+                    tz: tzOffset,
+                    latitude: crd.latitude,
+                    longitude: crd.longitude
+                });
             }
         }
         if (history.selectionStart == history.selectionEnd) {
@@ -351,14 +364,18 @@ const sendMessage = async () => {
             top: history.scrollHeight,
             behavior: 'smooth'
         });
-
-        const ipString = document.getElementById("ip");
-        let ip = ipString.innerHTML.replaceAll("`", "");
         let tzOffset = new Date().getTimezoneOffset(),
         tzInput = document.getElementById('tzOffset');
         tzInput.value = tzOffset*(-1);
         console.log("CRD = " + crd.latitude + ' ' + crd.longitude);
-        socket.emit('marv', { ip : ip, message : input.value, tz : tzInput.value, latitude : crd.latitude, longitude : crd.longitude });
+        socket.emit('marv', {
+            ip: document.getElementById('ip').textContent.trim(),
+            token: localStorage.getItem('marvToken'),
+            message: input.value,              // <- au lieu de text-input
+            tz: tzOffset,
+            latitude: crd?.latitude,
+            longitude: crd?.longitude
+        });
         input.value = "";
         if (history.selectionStart == history.selectionEnd) {
             history.scrollBottom = history.scrollHeight;

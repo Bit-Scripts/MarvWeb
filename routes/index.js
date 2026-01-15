@@ -1,24 +1,29 @@
 var express = require('express');
 var router = express.Router();
 var crypto = require('crypto');
-var token = crypto.randomBytes(64).toString('hex');
 var database = require("../db");
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-  var ip = req.headers['x-real-ip'] || req.connection.remoteAddress;
-  res.header("Access-Control-Allow-Origin", ip);
-  console.log(ip);
-  ip = crypto.createHash('sha1').update(ip).digest('base64');
-  db = database.createDbConnection();
+router.get('/legacy', function(req, res) {
+  let ip = req.headers['x-real-ip'] || req.connection.remoteAddress;
+
+  // (CORS: ton Access-Control-Allow-Origin = ip c'est chelou, je te conseille de le virer)
+  // res.header("Access-Control-Allow-Origin", ip);
+
+  const ipHash = crypto.createHash('sha1').update(ip).digest('base64');
+  const token = crypto.randomBytes(64).toString('hex');
+
+  const db = database.createDbConnection();
   db.serialize(() => {
     const stmt = db.prepare("INSERT OR REPLACE INTO authentification (ip, token) VALUES (?,?)");
-    stmt.run(ip, token);
+    stmt.run(ipHash, token);
     stmt.finalize();
   });
   db.close();
-  res.render('index', { title: 'Marv Web', ip: `${ip}` });
+
+  res.render('index', { title: 'Marv Web', ip: ipHash, token });
 });
+
 
 router.post('/store-prompt', function(req, res) {
   const prompt = req.body.prompt;
@@ -32,7 +37,5 @@ router.post('/store-prompt', function(req, res) {
 router.get('/privacy', function(req, res, next) {
   res.render('privacy', { title: 'Politique de Confidentialité & CGU' });
 });
-
-const getToken = () => { return token; }
 
 module.exports = { router, getToken };

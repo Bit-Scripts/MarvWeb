@@ -1,7 +1,6 @@
 const { OPENAI_API_KEY, organization, API_NEWS } = require('./config');
 const OpenAI = require("openai");
 const moment = require('moment-timezone');
-const fetch = require('node-fetch');
 const { find } = require('geo-tz');
 const axios = require('axios');
 let newsToday = "";

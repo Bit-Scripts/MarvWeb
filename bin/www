@@ -10,8 +10,6 @@ var app = require('../app');
 var debug = require('debug')('apptest:server');
 var http = require('http');
 const { Server } = require('socket.io');
-var { getToken } = require('../routes/index.js');
-var tokenOrig = getToken();
 let tokenBDD;
 let customPrompt = null;
 let lastPrompt = "";
@@ -77,9 +75,10 @@ io.on("connection", (socket) => {
     } finally {
       db.close();
     }
-    console.log(tokenBDD);
-    console.log(tokenOrig);
-    if(tokenBDD === tokenOrig) {
+    console.log("tokenBDD:", tokenBDD);
+    console.log("tokenClient:", arg.token);
+
+    if (tokenBDD && arg.token && tokenBDD === arg.token) {
       var response = ""
       var historic_total = "";
       if (historic.length > 4) {
@@ -120,7 +119,8 @@ io.on("connection", (socket) => {
         io.to(socket.id).emit('marv', response);
       }
     } else {
-      io.to(socket.id).emit('marv', 'Message non autorisé, veuillez recharger la page ! La mémoire du Bot a été réinitialisé');
+      io.to(socket.id).emit('marv', 'Non autorisé: token invalide, recharge la page.');
+      return;
     }
   })
 });

@@ -1,42 +1,16 @@
-const fs = require('fs');
-let config = {};
-
-if (fs.existsSync('./config.json')) {
-  config = require('./config.json');
-}
-
-const OPENAI_API_KEY =
-  process.env.OPENAI_API_KEY || config.OPENAI_API_KEY;
-
-const organization =
-  process.env.OPENAI_ORGANIZATION || config.organization;
-
-const OPEN_WEATHER_MAP_KEY =
-  process.env.OPEN_WEATHER_MAP_KEY || config.OPEN_WEATHER_MAP_KEY;
-
-const API_NEWS =
-  process.env.API_NEWS || config.API_NEWS;
-
-const MEANINGCLOUD_KEY =
-  process.env.MEANINGCLOUD_KEY || config.MEANINGCLOUD_KEY;
-
-const { Configuration, OpenAIApi, OpenAIApiAxiosParamCreator } = require("openai");
+const { OPENAI_API_KEY, organization, API_NEWS } = require('./config');
+const OpenAI = require("openai");
 const moment = require('moment-timezone');
 const fetch = require('node-fetch');
 const { find } = require('geo-tz');
 const axios = require('axios');
-const FormData = require('form-data');
-const cities = require('cities.json');
-let response = [];
 let newsToday = "";
 const joursFeries = require("@socialgouv/jours-feries");
 
-const configuration = new Configuration({
+const openai = new OpenAI ({
 	organization: organization,
 	apiKey:  OPENAI_API_KEY,
 });
-
-const openai = new OpenAIApi(configuration);
 
 const personality = `Tu es Marv, un chatbot doté d'une expertise en informatique et capable de mener des conversations captivantes. 
 Ton rôle est de discuter de manière informelle de l'actualité quotidienne en utilisant un langage simple et accessible. 
@@ -60,142 +34,243 @@ const DATA = {
 };
 
 const setWeatherInformation = async (ville) => {
-    await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=${ville}&appid=${OPEN_WEATHER_MAP_KEY}&units=metric&lang=fr`
-    )
+    // Open-Meteo veut lat/lon, donc on géocode d'abord la ville
+    await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(ville)}&count=1&language=fr&format=json`)
     .then(r => r.json())
-    .then(r => {
-        if (r.coord !== undefined) {
-            timezone = find(r.coord.lat, r.coord.lon)[0];
-            DATA.city_temperature = Math.round(r.main.temp);
-            DATA.city_weather = r.weather[0].description;
-            DATA.sun_rise = new Date(r.sys.sunrise * 1000).toLocaleString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: timezone,
-            });
-            DATA.sun_set = new Date(r.sys.sunset * 1000).toLocaleString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: timezone,
-            });
-            DATA.timeZone = timezone;
-        }
+    .then(async (geo) => {
+        if (!geo || !geo.results || geo.results.length === 0) return;
+
+        const lat = geo.results[0].latitude;
+        const lon = geo.results[0].longitude;
+
+        const tz = geo.results[0].timezone || (find(lat, lon)?.[0]) || 'Europe/Paris';
+
+        // Forecast current + daily
+        await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=${encodeURIComponent(tz)}`
+            + `&current=temperature_2m,weather_code`
+            + `&daily=sunrise,sunset`
+        )
+        .then(r => r.json())
+        .then(w => {
+            if (!w || !w.current) return;
+
+            DATA.city_temperature = Math.round(w.current.temperature_2m);
+
+            // petit mapping weather_code -> description FR (simple)
+            DATA.city_weather = getWeatherDescFR(w.current.weather_code);
+
+            // sunrise/sunset sont déjà en timezone, format ISO
+            if (w.daily && w.daily.sunrise && w.daily.sunrise[0]) {
+                DATA.sun_rise = new Date(w.daily.sunrise[0]).toLocaleString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: tz,
+                });
+            }
+
+            if (w.daily && w.daily.sunset && w.daily.sunset[0]) {
+                DATA.sun_set = new Date(w.daily.sunset[0]).toLocaleString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: tz,
+                });
+            }
+
+            DATA.timeZone = tz;
+        });
     });
+
     return DATA;
 }
 
 const setWeatherInformationCRD = async (latitude, longitude) => {
+    const tz = (find(latitude, longitude)?.[0]) || 'Europe/Paris';
+
     await fetch(
-        `https://api.openweathermap.org/data/2.5/onecall?lat=${latitude}&lon=${longitude}&appid=${OPEN_WEATHER_MAP_KEY}&units=metric&lang=fr`
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&timezone=${encodeURIComponent(tz)}`
+        + `&current=temperature_2m,weather_code`
+        + `&daily=sunrise,sunset`
     )
     .then(r => r.json())
-    .then(r => {
-        console.log(r);
-        if (r.coord !== undefined) {
-            DATA.city_temperature = Math.round(r.main.temp);
-            DATA.city_weather = r.weather[0].description;
-            DATA.sun_rise = new Date(r.sys.sunrise * 1000).toLocaleString('fr-FR', {
+    .then(w => {
+        if (!w || !w.current) return;
+
+        DATA.city_temperature = Math.round(w.current.temperature_2m);
+        DATA.city_weather = getWeatherDescFR(w.current.weather_code);
+
+        if (w.daily && w.daily.sunrise && w.daily.sunrise[0]) {
+            DATA.sun_rise = new Date(w.daily.sunrise[0]).toLocaleString('fr-FR', {
                 hour: '2-digit',
                 minute: '2-digit',
-                timeZone: timezone,
+                timeZone: tz,
             });
-            DATA.sun_set = new Date(r.sys.sunset * 1000).toLocaleString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: timezone,
-            });
-            DATA.timeZone = timezone;
         }
+
+        if (w.daily && w.daily.sunset && w.daily.sunset[0]) {
+            DATA.sun_set = new Date(w.daily.sunset[0]).toLocaleString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: tz,
+            });
+        }
+
+        DATA.timeZone = tz;
     });
+
     return DATA;
 }
 
 const getCity = async (latitude, longitude) => {
+    let ville;
+
     await fetch(
-        `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&appid=${OPEN_WEATHER_MAP_KEY}&units=metric&lang=fr`
+        `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=fr&count=1`
     )
     .then(r => r.json())
     .then(r => {
-        if (r[0].local_names !== undefined) {
-            if (r[0].local_names.fr !== undefined) {
-                ville = r[0].local_names.fr
-            }
-            console.log("Ville = " + ville)
+        if (r && r.results && r.results[0] && r.results[0].name) {
+            ville = r.results[0].name;
+            console.log("Ville = " + ville);
         }
     });
+
     if (ville == undefined) ville = "Paris";
     return ville;
 }
 
+const getWeatherDescFR = (code) => {
+    // Mapping simple basé sur WMO weather codes
+    const map = {
+        0: "ciel dégagé",
+        1: "plutôt dégagé",
+        2: "partiellement nuageux",
+        3: "couvert",
+        45: "brouillard",
+        48: "brouillard givrant",
+        51: "bruine légère",
+        53: "bruine",
+        55: "bruine forte",
+        61: "pluie faible",
+        63: "pluie",
+        65: "pluie forte",
+        71: "neige faible",
+        73: "neige",
+        75: "neige forte",
+        80: "averses faibles",
+        81: "averses",
+        82: "averses fortes",
+        95: "orage",
+        96: "orage avec grêle",
+        99: "orage violent avec grêle",
+    };
+    return map[code] || "météo variable";
+};
+
 const actu = async () => {
-    let date;
-    date = new Date();
-    for(let index in joursFeries(2023)){
-        while (date.getDay() == 0 || joursFeries(2023)[index].toISOString().split('T')[0] == date.toISOString().split('T')[0]) {
+    let date = new Date();
+    const year = new Date().getFullYear();
+
+    // recule si dimanche ou jour ferie
+    const feries = joursFeries(year);
+    for (let index in feries) {
+        while (
+            date.getDay() === 0 ||
+            feries[index].toISOString().split('T')[0] === date.toISOString().split('T')[0]
+        ) {
             date.setDate(date.getDate() - 1);
         }
-    };
+    }
+
     date = date.toISOString().split('T')[0];
 
-    return await axios.get(`http://api.mediastack.com/v1/news?access_key=${API_NEWS}&countries=fr&limit=8&sources=-franceantilles&date=${date}`)
+    return await axios.get(
+        `http://api.mediastack.com/v1/news?access_key=${API_NEWS}&countries=fr&limit=8&sources=-franceantilles&date=${date}`
+    )
     .then((response) => {
-        response = response.data.data;
-        if (response !== null && response !== undefined && response.length > 0) {
-            console.log("Titre = " + response[0].title + " ; url = " + response[0].url);
-            return response;
-        } else {
-            console.log("Pas d'actualité pour le moment");
-            response = "Pas d'actualité pour le moment";
-            return response;
+        const data = response.data.data;
+        if (data && data.length > 0) {
+            console.log("Titre = " + data[0].title + " ; url = " + data[0].url);
+            return data;
         }
-    }).catch((error) => {
-        console.log(error + "\nPas d'actualité pour le moment");
-        response = "Pas d'actualité pour le moment";
-        return response;
+        console.log("Pas d'actualité pour le moment");
+        return "Pas d'actualité pour le moment";
     })
+    .catch((error) => {
+        console.log(error + "\nPas d'actualité pour le moment");
+        return "Pas d'actualité pour le moment";
+    });
 }
 
-const RequestData = async (formdata) => {
-    const requestOptions = {
-        method: 'POST',
-        body: formdata,
-        redirect: 'follow',
-    };
-      
-    const endpoint = "https://api.meaningcloud.com/topics-2.0";
-      
+const RequestData = async (messageClient) => {
+    // Objectif: détecter une ville (ex: "à Tours", "sur Paris", etc.)
+    // Retourne juste "Tours" ou undefined si rien de fiable.
+
     try {
-        const response = await fetch(endpoint, requestOptions);
-        const data = await response.json();  // Parse the JSON response
-        
-        const entities = data.entity_list;  // Extract the list of entities
-        
-        if (entities.length > 0) {
-            const locationEntity = entities.find(entity => entity.form);  // Find the entity for 'Tours'
-            
-            if (locationEntity) {
-                const location = locationEntity.form;  // Get the form of the location entity
-                console.log("Ville = " + location);
-                return location; // Retournez la valeur de l'emplacement
-                
-                // Vous pouvez ensuite utiliser la variable 'location' dans votre application
-            } else {
-                console.log("Aucune entité de type 'Location' trouvée.");
-            }
-        } else {
-            console.log("Aucune entité trouvée dans la réponse.");
+        const gptResponse = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            temperature: 0,
+            messages: [
+                {
+                    role: "system",
+                    content: "Tu extrais une ville depuis un message utilisateur. Réponds uniquement en JSON strict."
+                },
+                {
+                    role: "user",
+                    content:
+                        `Message: "${messageClient}"\n` +
+                        `Retour JSON attendu: {"city": "NomDeVille"} ou {"city": null}\n` +
+                        `Règles: si ce n'est pas clairement une ville, city=null.`
+                }
+            ]
+        });
+
+        const content = gptResponse.choices[0].message.content.trim();
+
+        let parsed;
+        try {
+            parsed = JSON.parse(content);
+        } catch (e) {
+            return undefined;
+        }
+
+        const location = parsed && parsed.city ? String(parsed.city).trim() : null;
+
+        if (location && location.length > 1) {
+            console.log("Ville = " + location);
+            return location;
         }
     } catch (error) {
         console.error(error);
     }
-};
 
+    return undefined;
+};
 
 const Marv = async (question, timeZon, messageClient, latitude, longitude, customPrompt) => new Promise(async(resolve, reject) => {
 	console.log(question);
+    
     try {
+        delete DATA.city_temperature;
+        delete DATA.city_weather;
+        delete DATA.sun_rise;
+        delete DATA.sun_set;
+        delete DATA.timeZone;
+        
+        DATA.refresh_date = new Date().toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            timeZoneName: 'short',
+            timeZone: 'Europe/Paris',
+        });
+
+        newsToday = "";
+        
         const promptToUse = customPrompt || personality;
+        
         if (messageClient.includes("actu") || messageClient.includes('nouvel') || messageClient.includes('information')) {
             newsToday = "";
             const news = await actu();
@@ -208,13 +283,8 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude, custo
             }
     
             console.log(newsToday);
-        }
-        
-        const formdata = new FormData();
-        formdata.append("key", MEANINGCLOUD_KEY);
-        formdata.append("txt", messageClient);
-        formdata.append("lang", "fr"); 
-        
+        }      
+       
         let ville;
     
         if (latitude !== undefined) {
@@ -222,15 +292,17 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude, custo
     
             await setWeatherInformationCRD(latitude, longitude);
             ville = await getCity(latitude, longitude);
+            if (ville === undefined) ville = "Paris";
             
             console.log(ville);
         }
     
         let heure;
-        const location = await RequestData(formdata);
+        const location = await RequestData(messageClient);
         if (location !== undefined) {
             ville = location;
-            await setWeatherInformation(ville.replaceAll(' ','%20'));
+            if (ville === undefined) ville = "Paris";
+            await setWeatherInformation(ville);
             console.log(DATA.timeZone)
             if (DATA.timeZone !== undefined) {
                 console.log(DATA.timeZone);  
@@ -239,9 +311,10 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude, custo
             }  
         }
     
+        if (ville === undefined) ville = "Paris";
         console.log('Ville = ' + ville);
     
-        if ( heure === undefined && (timeZon !== undefined || !Number.isInteger(timeZon)) ) {
+        if (heure === undefined && timeZon !== undefined && Number.isInteger(timeZon)) {
             console.log(timeZon);
             heure = moment.utc().add(timeZon, 'minutes').format('HH:mm:ss');
         }         
@@ -270,8 +343,8 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude, custo
     
         console.log("promptToUse :", promptToUse);
     
-        gptResponse = await openai.createChatCompletion({
-        model: "gpt-4",
+        const gptResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
         messages: [
             { role: "system", content: promptToUse },  
             { role: "assistant", content: meteoDate },
@@ -280,7 +353,7 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude, custo
         });
     
     
-        let laReponse = gptResponse.data.choices[0].message.content;
+        const laReponse = gptResponse.choices[0].message.content;
         resolve(laReponse);  
     } catch (e) {
         console.log('une erreur s\'est produit lors de l\'appelle à l\'API de chatGPT :', e)

@@ -33,7 +33,8 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.get('/healthz', (req, res) => res.status(200).send('ok'));
 
 // Routes API
-app.use('/', indexRouter);     // OK si tu as change '/' -> '/legacy'
+app.use('/', indexRouter);        // /legacy, /privacy, /store-prompt, etc.
+app.get('/', (req, res) => res.redirect('/legacy'));
 app.use('/users', usersRouter);
 
 app.get('/get-prompt', (req, res) => {

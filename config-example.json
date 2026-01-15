@@ -1,7 +1,8 @@
 {
-    "OPENAI_API_KEY": "",
-    "organization": "",
-    "OPEN_WEATHER_MAP_KEY": "",
-    "RADIO_FRANCE_API_KEY": "",
-    "API_NEWS": ""
+  "OPENAI_API_KEY": "",
+  "organization": "",
+  "OPEN_WEATHER_MAP_KEY": "",
+  "API_NEWS": "",
+  "MEANINGCLOUD_KEY": ""
 }
+

@@ -1,4 +1,25 @@
-const { OPENAI_API_KEY, organization, OPEN_WEATHER_MAP_KEY, API_NEWS, MEANINGCLOUD_KEY } = require('./config.json');
+const fs = require('fs');
+let config = {};
+
+if (fs.existsSync('./config.json')) {
+  config = require('./config.json');
+}
+
+const OPENAI_API_KEY =
+  process.env.OPENAI_API_KEY || config.OPENAI_API_KEY;
+
+const organization =
+  process.env.OPENAI_ORGANIZATION || config.organization;
+
+const OPEN_WEATHER_MAP_KEY =
+  process.env.OPEN_WEATHER_MAP_KEY || config.OPEN_WEATHER_MAP_KEY;
+
+const API_NEWS =
+  process.env.API_NEWS || config.API_NEWS;
+
+const MEANINGCLOUD_KEY =
+  process.env.MEANINGCLOUD_KEY || config.MEANINGCLOUD_KEY;
+
 const { Configuration, OpenAIApi, OpenAIApiAxiosParamCreator } = require("openai");
 const moment = require('moment-timezone');
 const fetch = require('node-fetch');

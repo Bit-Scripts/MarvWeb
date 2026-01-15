@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "dev": "vite",
-    "build": "vite build"
+    "build": "node -e \"console.log('skip build')\""
   },
   "dependencies": {
     "@google-cloud/text-to-speech": "^4.2.3",

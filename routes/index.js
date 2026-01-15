@@ -38,4 +38,4 @@ router.get('/privacy', function(req, res, next) {
   res.render('privacy', { title: 'Politique de Confidentialité & CGU' });
 });
 
-module.exports = { router, getToken };
+module.exports = router;

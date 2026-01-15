@@ -29,9 +29,13 @@ app.use(cloudflare.restore());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// healthcheck d'abord
+app.get('/healthz', (req, res) => res.status(200).send('ok'));
+
 // Routes API
 app.use('/', indexRouter);     // OK si tu as change '/' -> '/legacy'
 app.use('/users', usersRouter);
+
 app.get('/get-prompt', (req, res) => {
   const prompt = req.cookies.chatgptPrompt;
   promptStore.setPrompt(prompt);
@@ -40,6 +44,7 @@ app.get('/get-prompt', (req, res) => {
 
 // Si tu veux garder des routes express "classiques" (optionnel)
 // app.use('/api', indexRouter); // par ex, mais attention a ne pas prendre '/'
+
 
 // fallback SPA: uniquement sur les GET qui ne sont pas une API et pas un fichier
 app.get(/^\/(?!api|users|legacy|privacy|socket\.io).*/, (req, res, next) => {

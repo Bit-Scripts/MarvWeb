@@ -8,19 +8,16 @@ const outDir = path.join(__dirname, 'dist');
 
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
-console.log('build-pug.js: START');
+console.log("build-pug.js: START");
 
 try {
-  const html = pug.renderFile(path.join(viewsDir, 'index.pug'), {
-    pretty: false,
-    // variables globales si besoin
-  });
-
+  const html = pug.renderFile(path.join(viewsDir, 'index.pug'), { pretty: false });
   fs.writeFileSync(path.join(outDir, 'index.html'), html, 'utf8');
-  console.log('Pug compiled -> dist/index.html');
-  console.log('build-pug.js: END');
+  console.log("Pug compiled -> dist/index.html");
 } catch (e) {
-  console.error('build-pug.js: ERROR');
-  console.error(e);
+  console.error("Pug compile failed:", e);
   process.exit(1);
 }
+
+console.log("build-pug.js: END");
+

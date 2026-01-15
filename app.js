@@ -15,7 +15,7 @@ var app = express();
 // Configuration
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
-app.set('trust proxy', 'loopback');
+app.set('trust proxy', 1);
 
 // Middlewares
 app.use(logger('dev'));
@@ -41,17 +41,22 @@ app.get('/get-prompt', (req, res) => {
 // Si tu veux garder des routes express "classiques" (optionnel)
 // app.use('/api', indexRouter); // par ex, mais attention a ne pas prendre '/'
 
-// fallback SPA a la fin
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+// fallback SPA: uniquement sur les GET qui ne sont pas une API et pas un fichier
+app.get(/^\/(?!api|users|legacy|privacy|socket\.io).*/, (req, res, next) => {
+  if (req.path.includes('.') ) return next(); // laisse passer les assets
+  return res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
-// Erreurs
+// 404
 app.use((req, res, next) => next(createError(404)));
+
+// handler erreur
 app.use((err, req, res, next) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
   res.status(err.status || 500);
+
+  // si tu veux une page erreur SPA en prod, tu peux renvoyer dist/index.html au lieu de render
   res.render('error');
 });
 

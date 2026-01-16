@@ -1,5 +1,7 @@
 let socket = null;
 let sessionToken = null;
+let crd = null;
+let crdPromise = null;
 let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
@@ -10,7 +12,6 @@ let bw = false;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 let activeRecognition = false;
-let crd;
 
 let soundMenuOpen = false;
 let accessMenuOpen = false;
@@ -21,44 +22,115 @@ const localisationOptions = {
     maximumAge: 0,
 };
 
-async function getToken() {
-    // 1) si localStorage contient un vieux token tronque, on le vire
-    const tokenFromLs = localStorage.getItem('marvToken');
-    if (tokenFromLs && tokenFromLs.length < 32) {
-        console.warn('[token] localStorage token trop court, purge:', tokenFromLs);
-        localStorage.removeItem('marvToken');
-    }
+function isValidToken(t) {
+    return typeof t === 'string' && /^[0-9a-f]+$/i.test(t) && t.length >= 32;
+}
 
-    // 2) si ton DOM token est vide (chez toi c'est souvent le cas), on ne s'en sert pas
+async function getToken() {
     const tokenFromDom = document.getElementById('token')?.textContent?.trim();
-    if (tokenFromDom && tokenFromDom.length >= 32) {
+    const tokenFromLs = localStorage.getItem('marvToken');
+
+    // 1) DOM
+    if (isValidToken(tokenFromDom)) {
         localStorage.setItem('marvToken', tokenFromDom);
         return tokenFromDom;
     }
 
-    // 3) source de verite: serveur
+    // 2) localStorage
+    if (isValidToken(tokenFromLs)) {
+        return tokenFromLs;
+    }
+
+    // si token LS est invalide, on le vire pour eviter de boucler dessus
+    if (tokenFromLs) localStorage.removeItem('marvToken');
+
+    // 3) fallback serveur
     const r = await fetch('/api/session?t=' + Date.now(), {
         credentials: 'include',
         cache: 'no-store'
     });
+
+    if (!r.ok) return null;
     const j = await r.json();
-    if (j?.token) {
+
+    if (isValidToken(j?.token)) {
         localStorage.setItem('marvToken', j.token);
         return j.token;
     }
+
     return null;
+}
+
+async function sendMessageInternal(message) {
+    if (!message || !message.trim()) return;
+
+    let coords = null;
+    try {
+        coords = await ensureCoord();
+    } catch (e) {
+        console.warn("No geoloc", e);
+    }
+
+    // 2) affichage local
+    const history = document.getElementById("history");
+    const converter = new showdown.Converter({ extensions: ['codehighlight'] });
+    converter.setFlavor('github');
+
+    history.innerHTML += "<br/>__________________________________________________________";
+    history.innerHTML += "<br/><br/>User : ";
+    history.innerHTML += converter.makeHtml(message);
+    history.scrollTo({ top: history.scrollHeight, behavior: 'smooth' });
+
+    // 3) envoi socket
+    if (socket?.connected) {
+        socket.emit('marv', {
+            message,
+            tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            latitude: coords?.latitude,
+            longitude: coords?.longitude
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     sessionToken = await getToken();
+    console.log('[token] sessionToken=', sessionToken);
 
-    console.log('[token] sessionToken len=', sessionToken?.length, sessionToken?.slice(0, 12));
+    if (!sessionToken) {
+        console.error("Pas de token de session");
+        return;
+    }
 
     socket = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
         auth: { token: sessionToken }
     });
+    
+    const form = document.getElementById('formPrompt');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const value = form.elements.prompt.value;
+            await sendMessageInternal(value);
+
+            const formData = new URLSearchParams();
+            formData.append('prompt', value);
+
+            const response = await fetch('/store-prompt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData
+            });
+
+            if (!response.ok) {
+            console.error('store-prompt failed', response.status);
+            return;
+            }
+
+            console.log(await response.text());
+        });
+    }
 
     socket.on('connect', () => console.log('Socket connecté !', socket.id));
     socket.on('connect_error', (e) => console.error('Erreur de connexion socket:', e));
@@ -127,7 +199,7 @@ const accessMenu = (event) => {
     accessMenuOpen = !accessMenuOpen;
 }
 
-document.addEventListener("click", function(event) {
+document.addEventListener("click", async function(event) {
     event.stopPropagation();
     const talkButton = document.getElementById('talk');
     const speechButton = document.getElementById('speech');
@@ -161,23 +233,20 @@ const localisationError = (err) => {
     console.warn(`ERREUR (${err.code}): ${err.message}`);
 }
 
-const getCoord = () => new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
+async function ensureCoord() {
+    if (crd) return Promise.resolve(crd);
+    if (crdPromise) return crdPromise;
+
+    crdPromise = new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
         (pos) => { crd = pos.coords; resolve(crd); },
-        reject,
+        () => { crd = null; resolve(null); },
         localisationOptions
-    );
-});
+        );
+    });
 
-
-window.onload = async () => {
-    try {
-        crd = await getCoord();
-        console.log("CRD loaded", crd);
-    } catch (e) {
-        console.warn("No geoloc", e);
-    }
-};
+    return crdPromise;
+}
 
 showdown.extension('codehighlight', () => {
     const htmlunencode = (text) => {
@@ -289,15 +358,8 @@ const startButton = async (event) => {
                 });
                 let tzOffset = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 console.log(tzOffset);
-                console.log("CRD = " + crd?.latitude + ', ' + crd?.longitude);
                 if (!socket || !socket.connected) return;
-                socket.emit('marv', {
-                    ip: document.getElementById('ip').textContent.trim(),
-                    message: transcript, // ou input.value
-                    tz: tzOffset,
-                    latitude: crd?.latitude,
-                    longitude: crd?.longitude
-                });
+                await sendMessageInternal(transcript);
             }
         }
         if (history.selectionStart == history.selectionEnd) {
@@ -384,47 +446,13 @@ const talk = (speak) => {
 }
 
 // Execute a function when the user presses a key on the keyboard
-const preventMoving = (event) => { 
-    // If the user presses the "Enter" key on the keyboard
+const preventMoving = async (event) => {
     if (event.key === "Enter") {
-        sendMessage();
-        // Cancel the default action, if needed
         event.preventDefault();
-    } 
-};
-
-const sendMessage = async () => {
-    // Get the input field
-    let input = document.getElementById("text-input");
-    const history = document.getElementById("history");
-    if (input.value != '' && input.value != ' ') {
-        history.innerHTML += "<br/>__________________________________________________________";
-        const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
-        text      = input.value,
-        html      = converter.makeHtml(text);
-        converter.setFlavor('github');
-        history.innerHTML += "<br/><br/>User : ";
-        history.innerHTML += html;
-        history.scrollTo({
-            top: history.scrollHeight,
-            behavior: 'smooth'
-        });
-        let tzOffset = new Date().getTimezoneOffset(),
-        tzInput = document.getElementById('tzOffset');
-        tzInput.value = tzOffset*(-1);
-        console.log("CRD = " + crd?.latitude + ' ' + crd?.longitude);
-        if (!socket || !socket.connected) return;
-        socket.emit('marv', {
-            ip: document.getElementById('ip').textContent.trim(),
-            message: input.value,              // <- au lieu de text-input
-            tz: tzOffset,
-            latitude: crd?.latitude,
-            longitude: crd?.longitude
-        });
+        const input = document.getElementById("text-input");
+        const value = input.value;
         input.value = "";
-        if (history.selectionStart == history.selectionEnd) {
-            history.scrollBottom = history.scrollHeight;
-        }
+        await sendMessageInternal(value);
     }
 };
 
@@ -474,24 +502,3 @@ const changePrompt = (event) => {
         formPrompt.style.display = "none";
     }
 }
-
-// document.addEventListener('DOMContentLoaded', function() {
-//     document.getElementById('formPrompt').addEventListener('submit', function(e) {
-//       e.preventDefault(); // Empêche le comportement de soumission par défaut
-//       var prompt = this.elements.prompt.value;
-  
-//       // Envoyer la valeur de prompt au serveur via WebSocket
-//       socket.emit('promptValue', { prompt: prompt });
-  
-//       // Vous pouvez également conserver le fetch si vous souhaitez envoyer les données à une autre route /store-prompt
-//       fetch('/store-prompt', {
-//         method: 'POST',
-//         headers: {
-//             'Content-Type': 'application/json'
-//         },
-//         body: JSON.stringify({ prompt: prompt })
-//       })
-//       .then(response => response.text())
-//       .then(data => console.log(data));
-//     });
-// });

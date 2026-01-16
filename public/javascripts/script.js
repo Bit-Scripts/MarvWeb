@@ -1,4 +1,5 @@
 let socket = null;
+let sessionToken = null;
 let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
@@ -20,44 +21,42 @@ const localisationOptions = {
     maximumAge: 0,
 };
 
-async function fetchSession() {
-    const r = await fetch('/api/session?t=' + Date.now(), {
-        credentials: 'include',
-        cache: 'no-store'
-    });
+async function getToken() {
+    // 1) DOM (si tu le mets dans la page)
+    const tokenFromDom = document.getElementById('token')?.textContent?.trim();
+    if (tokenFromDom) {
+        localStorage.setItem('marvToken', tokenFromDom);
+        return tokenFromDom;
+    }
 
-    if (!r.ok) return null;
-    return await r.json();
+    // 2) serveur (cookie -> source de verite)
+    try {
+        const r = await fetch('/api/session?t=' + Date.now(), { credentials: 'include', cache: 'no-store' });
+        if (r.ok) {
+        const j = await r.json();
+        if (j?.token) {
+            localStorage.setItem('marvToken', j.token);
+            return j.token;
+        }
+        }
+    } catch (e) {}
+
+    // 3) localStorage en dernier recours
+    const tokenFromLs = localStorage.getItem('marvToken');
+    if (tokenFromLs) return tokenFromLs;
+
+    return null;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1) token DOM
-    const tokenFromDom = document.getElementById('token')?.textContent?.trim();
+    sessionToken = await getToken();
 
-    // 2) session serveur (prioritaire)
-    let token = null;
-    try {
-        const s = await fetchSession();
-        token = s?.token || null;
-    } catch (e) {
-        console.warn('fetch /api/session failed', e);
-    }
-
-    // 3) fallback localStorage si vraiment pas de session
-    if (!token) token = tokenFromDom || localStorage.getItem('marvToken');
-
-    if (!token) {
-        console.warn('Pas de token dispo, impossible de lancer le socket.');
-        return;
-    }
-
-    // on ecrase le localStorage avec la source "fraiche"
-    localStorage.setItem('marvToken', token);
+    console.log('[token] sessionToken=', sessionToken?.slice(0, 8));
 
     socket = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
-        auth: { token }
+        auth: { token: sessionToken }
     });
 
     socket.on('connect', () => console.log('Socket connecté !', socket.id));
@@ -93,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 500);
     })
     // IMPORTANT: utilise TOUJOURS "token" (celui du DOMContentLoaded), pas localStorage
-    window.__MARV_TOKEN__ = token;
+    window.__MARV_TOKEN__ = sessionToken;
 });
 
 const soundMenu = (event) => {
@@ -293,8 +292,7 @@ const startButton = async (event) => {
                 if (!socket || !socket.connected) return;
                 socket.emit('marv', {
                     ip: document.getElementById('ip').textContent.trim(),
-                    token: window.__MARV_TOKEN__,   // <= celui-la
-                    message: transcript,
+                    message: transcript, // ou input.value
                     tz: tzOffset,
                     latitude: crd?.latitude,
                     longitude: crd?.longitude

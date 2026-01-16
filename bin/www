@@ -30,17 +30,32 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('✅ socket connected', socket.id, 'auth.token=', socket.handshake.auth?.token?.slice(0,8));
+  const token = socket.handshake.auth?.token;
+
+  console.log('✅ socket connected', socket.id, 'auth.token=', token?.slice(0, 8));
+
+  // cree l'utilisateur a la connexion (1 fois)
+  if (token) {
+    db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, null]);
+  }
 
   socket.on('marv', (data) => {
-    const token = data?.token || socket.handshake.auth?.token;
+    const realIP =
+      socket.handshake.headers['cf-connecting-ip'] ||
+      (socket.handshake.headers['x-forwarded-for'] ? String(socket.handshake.headers['x-forwarded-for']).split(',')[0].trim() : '') ||
+      socket.request?.socket?.remoteAddress ||
+      '';
+
+    const hashedIP = crypto.createHmac('sha256', process.env.IP_SALT || 'change-me')
+      .update(realIP)
+      .digest('hex');
 
     if (!token) {
       socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
       return;
     }
 
-    db.get(`SELECT * FROM users WHERE token = ?`, [token], (err, user) => {
+    db.get(`SELECT token FROM users WHERE token = ?`, [token], (err, user) => {
       if (err) {
         console.error('❌ DB', err);
         socket.emit('marv', 'Erreur serveur.');
@@ -53,8 +68,8 @@ io.on('connection', (socket) => {
 
       db.run(
         `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-        [token, data.message, data.latitude, data.longitude, data.tz, data.ip],
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [token, data.message, data.latitude, data.longitude, data.tz, hashedIP],
         function (err) {
           if (err) {
             console.error('❌ insert conv', err);

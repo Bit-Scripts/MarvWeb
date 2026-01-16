@@ -33,7 +33,7 @@ io.on('connection', (socket) => {
   console.log('✅ socket connected', socket.id, 'auth.token=', socket.handshake.auth?.token?.slice(0,8));
 
   socket.on('marv', (data) => {
-    const token = socket.handshake.auth?.token; // <-- ici
+    const token = data?.token || socket.handshake.auth?.token;
 
     if (!token) {
       socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');

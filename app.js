@@ -75,8 +75,8 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.get('/healthz', (req, res) => res.status(200).send('ok'));
 
 // routes
-app.use('/', indexRouter);
 app.get('/', (req, res) => res.redirect('/legacy'));
+app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
 app.get('/get-prompt', (req, res) => {

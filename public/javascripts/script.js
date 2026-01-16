@@ -20,30 +20,39 @@ const localisationOptions = {
     maximumAge: 0,
 };
 
+async function getToken() {
+    const tokenFromDom = document.getElementById('token')?.textContent?.trim();
+    const tokenFromLs = localStorage.getItem('marvToken');
+
+    if (tokenFromDom) {
+        localStorage.setItem('marvToken', tokenFromDom);
+        return tokenFromDom;
+    }
+    if (tokenFromLs) return tokenFromLs;
+
+    // fallback serveur
+    const r = await fetch('/api/session', { credentials: 'include' });
+    const j = await r.json(); // { token: "..." }
+    if (j?.token) {
+        localStorage.setItem('marvToken', j.token);
+        return j.token;
+    }
+    return null;
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1) token DOM ou localStorage
-    const tokenFromDom = document.getElementById('token')?.textContent?.trim();
-    if (tokenFromDom) localStorage.setItem('marvToken', tokenFromDom);
+    console.log(
+        '[DEBUG token DOM]',
+        document.getElementById('token')?.outerHTML
+    );
 
-    const token = localStorage.getItem('marvToken');
+    const token = await getToken();
 
-    console.log('[token] fromDom=', tokenFromDom?.slice(0,8), 'fromLS=', token?.slice(0,8));
-
-    // 2) si pas de token: on bloque (sinon tu ouvres un socket invalide)
     if (!token) {
-        console.error('Pas de token dispo: la page ne fournit pas #token, et localStorage vide.');
+        console.warn("Pas de token dispo.");
         return;
     }
 
-    // 3) si un socket existait deja, on le coupe (anti doublons)
-    if (socket) {
-        socket.off();
-        socket.disconnect();
-        socket = null;
-    }
-
-    // 4) creation socket
     socket = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
@@ -51,9 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         auth: { token }
     });
 
-    socket.on('connect', () => console.log('✅ Socket connecté', socket.id));
-    socket.on('connect_error', (e) => console.error('❌ Socket connect_error', e.message || e));
-    socket.on('disconnect', (r) => console.log('❌ Socket déconnecté', r));
+    socket.on('connect', () => console.log('Socket connecté !', socket.id));
+    socket.on('connect_error', (e) => console.error('Erreur socket:', e));
+    socket.on('disconnect', (r) => console.log('Socket déconnecté:', r));
 
     socket.on('marv', (receive) => {
         console.log('[marv] receive:', receive);

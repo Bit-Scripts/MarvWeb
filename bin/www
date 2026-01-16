@@ -20,11 +20,12 @@ const io = new Server(server, {
 });
 
 io.on('connection', (socket) => {
+  const token = socket.handshake.auth?.token;
   console.log('✅ socket connected', socket.id);
-
+  
+  console.log('token handshake:', token?.slice(0, 8));
+  
   socket.on('marv', (data) => {
-    const token = socket.handshake.auth?.token;
-    console.log('token handshake:', token?.slice(0, 8));
 
     if (!token) {
       socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');

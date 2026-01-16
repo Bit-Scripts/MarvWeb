@@ -85,6 +85,13 @@ app.get('/get-prompt', (req, res) => {
   res.send(`Le prompt stocké est : ${prompt}`);
 });
 
+app.get('/api/session', (req, res) => {
+  res.json({
+    token: req.userToken,
+    hashedIP: req.hashedIP
+  });
+});
+
 // fallback SPA
 app.get(/^\/(?!api|users|legacy|privacy|socket\.io).*/, (req, res, next) => {
   if (req.path.includes('.')) return next();

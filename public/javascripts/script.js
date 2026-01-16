@@ -21,13 +21,16 @@ const localisationOptions = {
 };
 
 
-document.addEventListener('DOMContentLoaded', () => {
-    const tokenFromDom = document.getElementById('token')?.textContent?.trim();
-    const tokenFromLs = localStorage.getItem('marvToken');
+document.addEventListener('DOMContentLoaded', async () => {
+    // recup session
+    const r = await fetch('/api/session', { credentials: 'include' });
+    const { token, hashedIP } = await r.json();
 
-    const token = tokenFromDom || tokenFromLs;
+    localStorage.setItem('marvToken', token);
 
-    if (tokenFromDom) localStorage.setItem('marvToken', tokenFromDom);
+    // (optionnel) afficher hashedIP dans #ip si tu veux
+    const ipDiv = document.getElementById('ip');
+    if (ipDiv) ipDiv.textContent = hashedIP;
 
     socket = io({
         path: '/socket.io',

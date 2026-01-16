@@ -1,99 +1,82 @@
 #!/usr/bin/env node
-const http = require('http');
-const { Server } = require('socket.io');
 
-const { Marv } = require('../marv');
+/**
+ * Module dependencies.
+ */
 
-const app = require('../app');
-const { db } = require('../db');
+const { app, server } = require('../app');
+const debug = require('debug')('marvweb:server');
 
-var port = normalizePort(process.env.PORT || '3017');
+/**
+ * Get port from environment and store in Express.
+ */
+
+const port = normalizePort(process.env.PORT || '3017');
 app.set('port', port);
 
-var server = http.createServer(app);
+/**
+ * Listen on provided port, on all network interfaces.
+ */
 
-const io = new Server(server, {
-  cors: {
-    origin: ['https://marv-bot.fr', 'http://marv-bot.fr', 'http://localhost:3017'],
-    methods: ['GET', 'POST'],
-    credentials: true
-  },
-  transports: ['websocket', 'polling']
-});
+server.listen(port, '0.0.0.0');
+server.on('error', onError);
+server.on('listening', onListening);
 
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-  if (!token) {
-    return next(new Error("NO_TOKEN"));
-  }
-  next();
-});
-
-io.on('connection', (socket) => {
-  const token = socket.handshake.auth?.token;
-
-  console.log('✅ socket connected', socket.id, 'auth.token=', token?.slice(0, 8));
-
-  // cree l'utilisateur a la connexion (1 fois)
-  if (token) {
-    db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, null]);
-  }
-
-  socket.on('marv', (data) => {
-    const realIP =
-      socket.handshake.headers['cf-connecting-ip'] ||
-      (socket.handshake.headers['x-forwarded-for'] ? String(socket.handshake.headers['x-forwarded-for']).split(',')[0].trim() : '') ||
-      socket.request?.socket?.remoteAddress ||
-      '';
-
-    const hashedIP = crypto.createHmac('sha256', process.env.IP_SALT || 'change-me')
-      .update(realIP)
-      .digest('hex');
-
-    if (!token) {
-      socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
-      return;
-    }
-
-    db.get(`SELECT token FROM users WHERE token = ?`, [token], (err, user) => {
-      if (err) {
-        console.error('❌ DB', err);
-        socket.emit('marv', 'Erreur serveur.');
-        return;
-      }
-      if (!user) {
-        socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
-        return;
-      }
-
-      db.run(
-        `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [token, data.message, data.latitude, data.longitude, data.tz, hashedIP],
-        function (err) {
-          if (err) {
-            console.error('❌ insert conv', err);
-            socket.emit('marv', 'Erreur sauvegarde.');
-            return;
-          }
-          socket.emit('marv', `ok (id=${this.lastID})`);
-        }
-      );
-    });
-  });
-
-  socket.on('disconnect', (reason) => {
-    console.log('❌ socket disconnected', socket.id, reason);
-  });
-});
-
-server.listen(port, '0.0.0.0', () => {
-  console.log('Listening on port', port);
-});
+/**
+ * Normalize a port into a number, string, or false.
+ */
 
 function normalizePort(val) {
-  var port = parseInt(val, 10);
-  if (isNaN(port)) return val;
-  if (port >= 0) return port;
+  const port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    return val;
+  }
+
+  if (port >= 0) {
+    return port;
+  }
+
   return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  const bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  const addr = server.address();
+  const bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+  console.log('✅ Server listening on ' + addr.address + ':' + addr.port);
+  console.log('🔌 Socket.IO ready');
 }

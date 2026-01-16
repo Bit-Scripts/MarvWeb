@@ -324,18 +324,18 @@ const startButton = async (event) => {
     const talk = document.getElementById('talk');
     
     if (activeRecognition) {
-        shouldRestartRecognition = false;
         recognition?.stop?.();
         activeRecognition = false;
         talk.style.backgroundColor = '#700';
         return;
     }
-
-    shouldRestartRecognition = true;
+    
     activeRecognition = true;
     recognition = new SpeechRecognition();
     recognition.lang = "fr-FR";
     recognition.start();
+    talk.style.backgroundColor = '#0707';
+    talk.style.backdropFilter =  'blur(15px)';
     
     ignore_onend = false;
 

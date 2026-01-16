@@ -41,18 +41,11 @@ async function getToken() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1) récupère / crée une session serveur (cookie + token)
-    const r = await fetch('/api/session', { credentials: 'include' });
-    const s = await r.json(); // { token: "..." }
-    const token = s.token;
+    const token = await getToken();
 
-    localStorage.setItem('marvToken', token);
-
-    // 2) connecte socket AVEC ce token
     socket = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
-        withCredentials: true,
         auth: { token }
     });
 
@@ -61,7 +54,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     socket.on('disconnect', (r) => console.log('Socket déconnecté:', r));
 
     socket.on('marv', receive => {
-    console.log('[marv] receive:', receive);
         console.log('[marv] receive:', receive);
         const history = document.getElementById("history");
         const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
@@ -412,7 +404,6 @@ const sendMessage = async () => {
         if (!socket || !socket.connected) return;
         socket.emit('marv', {
             ip: document.getElementById('ip').textContent.trim(),
-            token: localStorage.getItem('marvToken'),
             message: input.value,              // <- au lieu de text-input
             tz: tzOffset,
             latitude: crd?.latitude,

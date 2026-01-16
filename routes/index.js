@@ -9,16 +9,17 @@ router.get('/legacy', (req, res) => {
   });
 });
 
-router.get('/privacy', function(req, res, next) {
+router.get('/privacy', (req, res) => {
   res.render('privacy', { title: 'Politique de Confidentialité' });
 });
 
-router.post('/store-prompt', function(req, res, next) {
+router.post('/store-prompt', (req, res) => {
   const prompt = req.body.prompt;
   res.cookie('chatgptPrompt', prompt, {
     maxAge: 365 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production'
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
   });
   res.send('Prompt stocké avec succès');
 });

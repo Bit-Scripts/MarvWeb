@@ -19,37 +19,49 @@ const app = express();
 
 function hashIP(ip) {
   const salt = process.env.IP_SALT || 'change-me';
-  return crypto.createHmac('sha256', salt).update(ip).digest('hex');
+  return crypto.createHmac('sha256', salt).update(ip || '').digest('hex');
 }
 
 function generateUniqueToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+function getRealIp(req) {
+  return (
+    req.headers['cf-connecting-ip'] ||
+    (req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : '') ||
+    req.ip ||
+    req.socket?.remoteAddress ||
+    ''
+  );
+}
+
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 app.set('trust proxy', 1);
 
+// IMPORTANT: cookieParser une seule fois, au debut
+app.use(cookieParser());
+
+// cloudflare restore avant de lire l'ip
+app.use(cloudflare.restore());
+
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use(cloudflare.restore());
 
-// token + ip hash
+// session (UNIQUE)
 app.use((req, res, next) => {
-  let token = req.cookies.marvToken;
-
-  const realIP =
-    req.headers['cf-connecting-ip'] ||
-    req.headers['x-forwarded-for']?.split(',')[0] ||
-    req.ip;
-
+  const realIP = getRealIp(req);
   const hashedIP = hashIP(realIP);
+
+  let token = req.cookies?.marvToken;
 
   if (!token) {
     token = generateUniqueToken();
+
+    // cookie secure en prod + httpOnly true (le client ne le lit pas directement)
     res.cookie('marvToken', token, {
       maxAge: 365 * 24 * 60 * 60 * 1000,
       httpOnly: true,
@@ -57,8 +69,10 @@ app.use((req, res, next) => {
       sameSite: 'lax'
     });
 
-    db.run(`INSERT INTO users (token, hashed_ip) VALUES (?, ?)`, [token, hashedIP]);
+    // evite les erreurs si token existe deja (rare mais possible)
+    db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, hashedIP]);
   } else {
+    // si tu veux, tu peux aussi maj hashed_ip ici (optionnel)
     db.run(`UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE token = ?`, [token]);
   }
 
@@ -85,6 +99,7 @@ app.get('/get-prompt', (req, res) => {
   res.send(`Le prompt stocké est : ${prompt}`);
 });
 
+// utile pour debug + client (si DOM vide)
 app.get('/api/session', (req, res) => {
   res.json({
     token: req.userToken,

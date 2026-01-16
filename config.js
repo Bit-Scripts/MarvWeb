@@ -19,6 +19,6 @@ function pick(name, fallback = '') {
 
 module.exports = {
   OPENAI_API_KEY: pick('OPENAI_API_KEY'),
-  organization: pick('organization'),
+  organization: pick('organization') || pick('ORGANIZATION'),
   API_NEWS: pick('API_NEWS'),
 };

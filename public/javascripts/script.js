@@ -1,4 +1,20 @@
-const socket = io();
+const socket = io({
+    path: '/socket.io',
+    transports: ['websocket', 'polling']
+});
+
+socket.on('connect', () => {
+    console.log('Socket connecté !', socket.id);
+});
+
+socket.on('connect_error', (error) => {
+    console.error('Erreur de connexion socket:', error);
+});
+
+socket.on('disconnect', (reason) => {
+    console.log('Socket déconnecté:', reason);
+});
+
 let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;

@@ -1,8 +1,8 @@
 extends layout
 
 block content
-  div(id="ip") #{ip}
-  div(id="token" style="display:none") #{token}
+  div#ip= hashedIP
+  div#token(style="display:none")= token
   div(id="containerBot")
     - var img = "images/botavatar.png"
     img(src=img id='bot')

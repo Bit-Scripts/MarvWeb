@@ -320,18 +320,17 @@ const startButton = async (event) => {
     event.stopPropagation();
     await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     activeRecognition = !activeRecognition;
-    recognition = new SpeechRecognition();
-    recognition.lang = "fr-FR";
-    recognition.start();
-    const talk = document.getElementById('talk');
-    if (activeRecognition) {
-        talk.style.backgroundColor = '#0707';
-        talk.style.backdropFilter =  'blur(15px)';
-    } else {
+    if (!activeRecognition) {
         recognition.stop();
         talk.style.backgroundColor = '#700';
         return;
     }
+    recognition = new SpeechRecognition();
+    recognition.lang = "fr-FR";
+    recognition.start();
+    const talk = document.getElementById('talk');
+    talk.style.backgroundColor = '#0707';
+    talk.style.backdropFilter =  'blur(15px)';
 
 
     ignore_onend = false;
@@ -350,9 +349,10 @@ const startButton = async (event) => {
     };
 
     recognition.onend = () => {
-        recognition.stop();
-        activeRecognition = false;
-        talk.style.backgroundColor = '#700';
+        recognition.start();
+        activeRecognition = true;
+        talk.style.backgroundColor = '#0707';
+        talk.style.backdropFilter =  'blur(15px)';
     }
 
     recognition.onspeechend = async () => {

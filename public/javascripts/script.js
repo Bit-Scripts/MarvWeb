@@ -320,17 +320,18 @@ const startButton = async (event) => {
     event.stopPropagation();
     await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     activeRecognition = !activeRecognition;
-    if (!activeRecognition) {
-        recognition.stop();
-        talk.style.backgroundColor = '#700';
-        return;
-    }
     recognition = new SpeechRecognition();
     recognition.lang = "fr-FR";
     recognition.start();
     const talk = document.getElementById('talk');
-    talk.style.backgroundColor = '#0707';
-    talk.style.backdropFilter =  'blur(15px)';
+    if (activeRecognition) {
+        talk.style.backgroundColor = '#0707';
+        talk.style.backdropFilter =  'blur(15px)';
+    } else {
+        recognition.stop();
+        talk.style.backgroundColor = '#700';
+        return;
+    }
 
 
     ignore_onend = false;

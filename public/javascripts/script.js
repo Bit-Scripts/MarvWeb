@@ -21,21 +21,18 @@ const localisationOptions = {
 };
 
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // recup session
-    const r = await fetch('/api/session', { credentials: 'include' });
-    const { token, hashedIP } = await r.json();
-
-    localStorage.setItem('marvToken', token);
-
-    // (optionnel) afficher hashedIP dans #ip si tu veux
-    const ipDiv = document.getElementById('ip');
-    if (ipDiv) ipDiv.textContent = hashedIP;
+function connectSocket(token) {
+    if (socket) {
+        // si deja connecte avec un token different, on reconnect proprement
+        socket.disconnect();
+        socket = null;
+    }
 
     socket = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
         withCredentials: true,
+        autoConnect: true,
         auth: { token }
     });
 
@@ -70,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }, 500);
     })
-});
+};
 
 const soundMenu = (event) => {
     event.stopPropagation();

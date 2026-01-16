@@ -8,24 +8,6 @@ const { Marv } = require('../marv');
 const app = require('../app');
 const { db } = require('../db');
 
-function hashIP(ip) {
-  return crypto
-    .createHmac('sha256', process.env.IP_SALT || 'change-me')
-    .update(ip || '')
-    .digest('hex');
-}
-
-function getRealIpFromSocket(socket) {
-  return (
-    socket.handshake.headers['cf-connecting-ip'] ||
-    (socket.handshake.headers['x-forwarded-for']
-      ? String(socket.handshake.headers['x-forwarded-for']).split(',')[0].trim()
-      : '') ||
-    socket.request?.socket?.remoteAddress ||
-    ''
-  );
-}
-
 var port = normalizePort(process.env.PORT || '3017');
 app.set('port', port);
 
@@ -63,49 +45,73 @@ io.on('connection', (socket) => {
   // cree l'utilisateur a la connexion (1 fois)
   db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, null]);
 
-  socket.on('marv', (data) => {
-    const realIP = getRealIpFromSocket(socket);
-    const hashedIP = hashIP(realIP);
+  socket.on('marv', async (data) => {
+    const realIP =
+      socket.handshake.headers['cf-connecting-ip'] ||
+      (socket.handshake.headers['x-forwarded-for']
+        ? String(socket.handshake.headers['x-forwarded-for']).split(',')[0].trim()
+        : '') ||
+      socket.request?.socket?.remoteAddress ||
+      '';
 
-    db.get(`SELECT token FROM users WHERE token = ?`, [token], (err, user) => {
+    const hashedIP = crypto
+      .createHmac('sha256', process.env.IP_SALT || 'change-me')
+      .update(realIP)
+      .digest('hex');
+
+    if (!token) {
+      socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
+      return;
+    }
+
+    db.get(`SELECT token FROM users WHERE token = ?`, [token], async (err, user) => {
       if (err) {
         console.error('❌ DB', err);
         socket.emit('marv', 'Erreur serveur.');
         return;
       }
 
-      // si jamais course SQLite, on re-insert puis on continue
       if (!user) {
-        db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, null], () => {
-          // continue quand meme
-          db.run(
-            `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [token, data.message, data.latitude, data.longitude, data.tz, hashedIP],
-            function (err2) {
-              if (err2) {
-                console.error('❌ insert conv', err2);
-                socket.emit('marv', 'Erreur sauvegarde.');
-                return;
-              }
-              socket.emit('marv', `ok (id=${this.lastID})`);
-            }
-          );
-        });
+        socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
         return;
       }
 
+      // 1️⃣ Sauvegarde la question utilisateur
       db.run(
         `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        VALUES (?, ?, ?, ?, ?, ?)`,
         [token, data.message, data.latitude, data.longitude, data.tz, hashedIP],
-        function (err2) {
+        async function (err2) {
           if (err2) {
             console.error('❌ insert conv', err2);
             socket.emit('marv', 'Erreur sauvegarde.');
             return;
           }
-          socket.emit('marv', `ok (id=${this.lastID})`);
+
+          try {
+            // 2️⃣ Appel IA
+            const reply = await Marv(
+              data.message,          // question
+              data.tz,               // timezone
+              data.message,          // messageClient (oui, pareil ici)
+              data.latitude,
+              data.longitude
+            );
+
+            // 3️⃣ Sauvegarde la reponse IA (optionnel mais conseille)
+            db.run(
+              `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
+              VALUES (?, ?, ?, ?, ?, ?)`,
+              [token, reply, data.latitude, data.longitude, data.tz, hashedIP]
+            );
+
+            // 4️⃣ Envoie la reponse au client
+            socket.emit('marv', reply);
+
+          } catch (e) {
+            console.error('❌ Marv error', e);
+            socket.emit('marv', "Désolé, j'ai eu un souci avec l'IA.");
+          }
         }
       );
     });

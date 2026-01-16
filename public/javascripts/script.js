@@ -22,15 +22,18 @@ const localisationOptions = {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    const token = document.getElementById('token')?.textContent?.trim();
-    if (token) localStorage.setItem('marvToken', token);
+    const tokenFromDom = document.getElementById('token')?.textContent?.trim();
+    const tokenFromLs = localStorage.getItem('marvToken');
+
+    const token = tokenFromDom || tokenFromLs;
+
+    if (tokenFromDom) localStorage.setItem('marvToken', tokenFromDom);
 
     socket = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
-        auth: {
-            token: localStorage.getItem('marvToken')
-        }
+        withCredentials: true,
+        auth: { token }
     });
 
     socket.on('connect', () => console.log('Socket connecté !', socket.id));

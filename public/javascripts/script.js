@@ -2,7 +2,6 @@ let socket = null;
 let sessionToken = null;
 let crd = null;
 let crdPromise = null;
-let recognition = null;
 let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
@@ -201,7 +200,7 @@ const accessMenu = (event) => {
 }
 
 document.addEventListener("click", async function(event) {
-    if (!soundMenuOpen && !accessMenuOpen) return;
+    event.stopPropagation();
     const talkButton = document.getElementById('talk');
     const speechButton = document.getElementById('speech');
     const bwButton = document.getElementById('bw');
@@ -320,22 +319,22 @@ const voicesLoader = new Promise((resolve, reject) => {
 const startButton = async (event) => {
     event.stopPropagation();
     await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    
-    const talk = document.getElementById('talk');
-    
-    if (activeRecognition) {
-        recognition?.stop?.();
-        activeRecognition = false;
-        talk.style.backgroundColor = '#700';
-        return;
-    }
-    
-    activeRecognition = true;
+    activeRecognition = !activeRecognition;
     recognition = new SpeechRecognition();
     recognition.lang = "fr-FR";
     recognition.start();
-    talk.style.backgroundColor = '#0707';
-    talk.style.backdropFilter =  'blur(15px)';
+    const talk = document.getElementById('talk');
+    if (activeRecognition) {
+        talk.style.backgroundColor = '#0707';
+        talk.style.backdropFilter =  'blur(15px)';
+    } else {
+        recognition.stop();
+        talk.style.backgroundColor = '#700';
+        return;
+    }
+
+
+    ignore_onend = false;
 
     start_timestamp = event.timeStamp;
 

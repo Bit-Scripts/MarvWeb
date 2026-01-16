@@ -30,14 +30,6 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  console.log(
-    '✅ socket connected',
-    socket.id,
-    'auth.token=',
-    socket.handshake.auth?.token?.slice(0, 8)
-  );
-
-io.on('connection', (socket) => {
   console.log('✅ socket connected', socket.id, 'auth.token=', socket.handshake.auth?.token?.slice(0, 8));
 
   socket.on('marv', (data) => {
@@ -76,11 +68,6 @@ io.on('connection', (socket) => {
       );
     });
   });
-
-  socket.on('disconnect', (reason) => {
-    console.log('❌ socket disconnected', socket.id, reason);
-  });
-});
 
   socket.on('disconnect', (reason) => {
     console.log('❌ socket disconnected', socket.id, reason);

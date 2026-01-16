@@ -353,9 +353,11 @@ const startButton = async (event) => {
     };
 
     recognition.onend = () => {
-        if (!shouldRestartRecognition) return;
         recognition.start();
-    };
+        activeRecognition = true;
+        talk.style.backgroundColor = '#0707';
+        talk.style.backdropFilter =  'blur(15px)';
+    }
 
     recognition.onspeechend = async () => {
         recognition.stop();

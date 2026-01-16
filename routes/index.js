@@ -2,13 +2,13 @@ var express = require('express');
 var router = express.Router();
 
 router.get('/legacy', function(req, res, next) {
-  const token = req.cookies.marvToken || req.userToken;
+  const token = req.userToken || req.cookies.marvToken;
   const hashedIP = req.hashedIP;
-  
+
   res.render('index', { 
     title: 'MarvBot',
-    token: token,
-    hashedIP: hashedIP
+    token,
+    hashedIP
   });
 });
 

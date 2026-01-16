@@ -1,4 +1,4 @@
-let socket;
+let socket = null;
 let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
@@ -20,14 +20,30 @@ const localisationOptions = {
     maximumAge: 0,
 };
 
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // 1) token DOM ou localStorage
     const tokenFromDom = document.getElementById('token')?.textContent?.trim();
-    const tokenFromLs = localStorage.getItem('marvToken');
-
-    const token = tokenFromDom || tokenFromLs;
-
     if (tokenFromDom) localStorage.setItem('marvToken', tokenFromDom);
 
+    const token = localStorage.getItem('marvToken');
+
+    console.log('[token] fromDom=', tokenFromDom?.slice(0,8), 'fromLS=', token?.slice(0,8));
+
+    // 2) si pas de token: on bloque (sinon tu ouvres un socket invalide)
+    if (!token) {
+        console.error('Pas de token dispo: la page ne fournit pas #token, et localStorage vide.');
+        return;
+    }
+
+    // 3) si un socket existait deja, on le coupe (anti doublons)
+    if (socket) {
+        socket.off();
+        socket.disconnect();
+        socket = null;
+    }
+
+    // 4) creation socket
     socket = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
@@ -35,11 +51,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         auth: { token }
     });
 
-    socket.on('connect', () => console.log('Socket connecté !', socket.id));
-    socket.on('connect_error', (e) => console.error('Erreur de connexion socket:', e));
-    socket.on('disconnect', (r) => console.log('Socket déconnecté:', r));
+    socket.on('connect', () => console.log('✅ Socket connecté', socket.id));
+    socket.on('connect_error', (e) => console.error('❌ Socket connect_error', e.message || e));
+    socket.on('disconnect', (r) => console.log('❌ Socket déconnecté', r));
 
-    socket.on('marv', receive => {
+    socket.on('marv', (receive) => {
+        console.log('[marv] receive:', receive);
         const history = document.getElementById("history");
         const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
         text      = receive,

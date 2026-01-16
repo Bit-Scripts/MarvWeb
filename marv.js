@@ -5,6 +5,7 @@ const { find } = require('geo-tz');
 const axios = require('axios');
 let newsToday = "";
 const joursFeries = require("@socialgouv/jours-feries");
+const DEFAULT_MODEL = "gpt-4.1-mini";
 
 const openai = new OpenAI ({
 	organization: organization,
@@ -202,45 +203,43 @@ const actu = async () => {
 }
 
 const RequestData = async (messageClient) => {
-    // Objectif: détecter une ville (ex: "à Tours", "sur Paris", etc.)
-    // Retourne juste "Tours" ou undefined si rien de fiable.
-
     try {
         const gptResponse = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            temperature: 0,
-            messages: [
-                {
-                    role: "system",
-                    content: "Tu extrais une ville depuis un message utilisateur. Réponds uniquement en JSON strict."
-                },
-                {
-                    role: "user",
-                    content:
-                        `Message: "${messageClient}"\n` +
-                        `Retour JSON attendu: {"city": "NomDeVille"} ou {"city": null}\n` +
-                        `Règles: si ce n'est pas clairement une ville, city=null.`
-                }
-            ]
+        model: DEFAULT_MODEL,
+        temperature: 0,
+        messages: [
+            {
+            role: "system",
+            content: "Tu extrais une ville depuis un message utilisateur. Réponds uniquement en JSON strict."
+            },
+            {
+            role: "user",
+            content:
+                `Message: "${messageClient}"\n` +
+                `Retour JSON attendu: {"city": "NomDeVille"} ou {"city": null}\n` +
+                `Règles: si ce n'est pas clairement une ville, city=null.`
+            }
+        ]
         });
 
         const content = gptResponse.choices[0].message.content.trim();
 
         let parsed;
         try {
-            parsed = JSON.parse(content);
-        } catch (e) {
-            return undefined;
+        parsed = JSON.parse(content);
+        } catch {
+        return undefined;
         }
 
-        const location = parsed && parsed.city ? String(parsed.city).trim() : null;
+        const location = parsed?.city ? String(parsed.city).trim() : null;
 
         if (location && location.length > 1) {
-            console.log("Ville = " + location);
-            return location;
+        console.log("Ville = " + location);
+        return location;
         }
-    } catch (error) {
-        console.error(error);
+
+    } catch (e) {
+        console.error('❌ OpenAI error in RequestData:', e?.error?.code || e?.code || e);
     }
 
     return undefined;
@@ -283,7 +282,7 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude, custo
     
             console.log(newsToday);
         }      
-       
+    
         let ville;
     
         if (latitude !== undefined) {
@@ -343,7 +342,7 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude, custo
         console.log("promptToUse :", promptToUse);
     
         const gptResponse = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: DEFAULT_MODEL,
         messages: [
             { role: "system", content: promptToUse },  
             { role: "assistant", content: meteoDate },
@@ -354,9 +353,16 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude, custo
     
         const laReponse = gptResponse.choices[0].message.content;
         resolve(laReponse);  
+
     } catch (e) {
-    console.log("une erreur s'est produit lors de l'appelle à l'API de chatGPT :", e);
-    resolve("Désolé, j'ai eu un souci avec l'IA. Réessaie dans 10 secondes.");
+        console.error('❌ OpenAI error:', e?.error?.code || e?.code || e);
+
+        if (e?.error?.code === 'insufficient_quota') {
+            resolve("Je n'ai plus de crédit IA pour le moment. Réessaie plus tard.");
+            return;
+        }
+
+        resolve("Désolé, j'ai eu un souci avec l'IA. Réessaie dans 10 secondes.");
     }
 });
 

@@ -101,6 +101,11 @@ app.get('/get-prompt', (req, res) => {
 
 // utile pour debug + client (si DOM vide)
 app.get('/api/session', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
+
   res.json({
     token: req.userToken,
     hashedIP: req.hashedIP

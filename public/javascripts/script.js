@@ -20,28 +20,39 @@ const localisationOptions = {
     maximumAge: 0,
 };
 
-async function getToken() {
-    const tokenFromDom = document.getElementById('token')?.textContent?.trim();
-    const tokenFromLs = localStorage.getItem('marvToken');
+async function fetchSession() {
+    const r = await fetch('/api/session?t=' + Date.now(), {
+        credentials: 'include',
+        cache: 'no-store'
+    });
 
-    if (tokenFromDom) {
-        localStorage.setItem('marvToken', tokenFromDom);
-        return tokenFromDom;
-    }
-    if (tokenFromLs) return tokenFromLs;
-
-    // fallback serveur
-    const r = await fetch('/api/session', { credentials: 'include' });
-    const j = await r.json(); // { token: "..." }
-    if (j?.token) {
-        localStorage.setItem('marvToken', j.token);
-        return j.token;
-    }
-    return null;
+    if (!r.ok) return null;
+    return await r.json();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const token = await getToken();
+    // 1) token DOM
+    const tokenFromDom = document.getElementById('token')?.textContent?.trim();
+
+    // 2) session serveur (prioritaire)
+    let token = null;
+    try {
+        const s = await fetchSession();
+        token = s?.token || null;
+    } catch (e) {
+        console.warn('fetch /api/session failed', e);
+    }
+
+    // 3) fallback localStorage si vraiment pas de session
+    if (!token) token = tokenFromDom || localStorage.getItem('marvToken');
+
+    if (!token) {
+        console.warn('Pas de token dispo, impossible de lancer le socket.');
+        return;
+    }
+
+    // on ecrase le localStorage avec la source "fraiche"
+    localStorage.setItem('marvToken', token);
 
     socket = io({
         path: '/socket.io',
@@ -81,6 +92,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }, 500);
     })
+    // IMPORTANT: utilise TOUJOURS "token" (celui du DOMContentLoaded), pas localStorage
+    window.__MARV_TOKEN__ = token;
 });
 
 const soundMenu = (event) => {
@@ -280,8 +293,8 @@ const startButton = async (event) => {
                 if (!socket || !socket.connected) return;
                 socket.emit('marv', {
                     ip: document.getElementById('ip').textContent.trim(),
-                    token: localStorage.getItem('marvToken'),
-                    message: transcript,              // <- au lieu de text-input
+                    token: window.__MARV_TOKEN__,   // <= celui-la
+                    message: transcript,
                     tz: tzOffset,
                     latitude: crd?.latitude,
                     longitude: crd?.longitude

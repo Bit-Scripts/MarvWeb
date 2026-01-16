@@ -17,7 +17,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --loglevel verbose
+
 
 # ton serveur + ce dont il a besoin
 COPY --from=build /app/dist ./dist

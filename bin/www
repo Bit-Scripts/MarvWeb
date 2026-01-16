@@ -1,193 +1,74 @@
 #!/usr/bin/env node
-
-/**
- * Module dependencies.
- */
-
-const { Marv } = require('../marv.js');
-const promptStore = require('../promptStore.js');
-var app = require('../app');
-var debug = require('debug')('apptest:server');
-var http = require('http');
+const http = require('http');
 const { Server } = require('socket.io');
-let tokenBDD;
-let customPrompt = null;
-let lastPrompt = "";
-const fs = require("fs");
-const database = require('../db.js');
-var historic = [];
-var historic_total = "";
-/**
- * Get port from environment and store in Express.
- */
+
+const app = require('../app');
+const { db } = require('../db');
 
 var port = normalizePort(process.env.PORT || '3017');
 app.set('port', port);
 
-/**
- * Create HTTP server.
- */
-
-const server = http.createServer(app);
-
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port, '0.0.0.0');
-server.on('error', onError);
-server.on('listening', onListening);
+var server = http.createServer(app);
 
 const io = new Server(server, {
-  path: '/socket.io',
-  transports: ['websocket', 'polling'],
   cors: {
-    origin: true,
+    origin: ['https://marv-bot.fr', 'http://marv-bot.fr', 'http://localhost:3017'],
+    methods: ['GET', 'POST'],
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling']
 });
 
-io.on("connection", (socket) => {
-  // Gestionnaire pour changer le prompt
-  const savedPrompt = promptStore.getPrompt();
-  socket.on('promptValue', (data) => {
-    customPrompt = data?.prompt ? data.prompt : savedPrompt;
-    console.log('Prompt personnalisé reçu via Socket.io:', customPrompt);
-  });
-  socket.on('marv', async (arg) => {
-    console.log(arg.ip);
-    console.log(arg.message);
-    const messageClient = arg.message;
-    const latitude = arg.latitude;
-    const longitude = arg.longitude;
-    db = database.createDbConnection();
-    /*
-    db.serialize(() => {
-      db.each(`SELECT token FROM authentification WHERE ip="${ip}"`, (error, token) => {
-        return token;
-      });
-    });*/
-    try {
-      tokenBDD = await new Promise((resolve, reject) => {
-        const sql = `SELECT token FROM authentification WHERE ip="${arg.ip}"`;
-        db.get(sql, async (err, row) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(row.token);
-        });
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      db.close();
-    }
-    console.log("tokenBDD:", tokenBDD);
-    console.log("tokenClient:", arg.token);
+io.on('connection', (socket) => {
+  console.log('✅ socket connected', socket.id);
 
-    if (tokenBDD && arg.token && tokenBDD === arg.token) {
-      var response = ""
-      var historic_total = "";
-      if (historic.length > 4) {
-        historic.splice(4);
-      }     
-      var lines = arg.message.split('\n');
-      var maxLength = 4096; // Limite de longueur du message
-      var message = "";
-      for (var i = lines.length - 1; i >= 0; i--) {
-        if (lines[i].length > maxLength) {
-          response = "Une ligne du message est trop longue";
-          break;
-        }
-        if (message.length + lines[i].length > maxLength) {
-          response = "Message trop long";
-          break;
-        }
-        message += lines[i] + "\n";
-      }
+  socket.on('marv', (data) => {
+    const token = data.token;
 
-      var historic_total = "";
-      for (var i = 0; i < historic.length; i++) {
-        var ip_historic = historic[i][0];
-        if (ip_historic == arg.ip) {
-          historic_total += historic[i][1];
-        }
-      }
-      
-      message += "Historique des conversations : \n" + historic_total;
-      
-      if (response != "Message trop long" || response != "Une ligne du message est trop longue") {
-        console.log("CRD = " + latitude + ' ' + longitude);
-        response = await Marv(message, arg.tz, messageClient, latitude, longitude, customPrompt); 
-        console.log(response);
-        io.to(socket.id).emit('marv', response.replaceAll(arg.ip, "Utilisateur"));
-        historic.push([arg.ip, ('Message de '+ arg.ip + ' ' + message + ' réponse du Bot ' + response + '\n').replaceAll("Historique des conversations : \n", "")]);
-      } else {
-        io.to(socket.id).emit('marv', response);
-      }
-    } else {
-      io.to(socket.id).emit('marv', 'Non autorisé: token invalide, recharge la page.');
+    if (!token) {
+      socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
       return;
     }
-  })
+
+    db.get(`SELECT * FROM users WHERE token = ?`, [token], (err, user) => {
+      if (err) {
+        console.error('❌ DB', err);
+        socket.emit('marv', 'Erreur serveur.');
+        return;
+      }
+      if (!user) {
+        socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
+        return;
+      }
+
+      db.run(
+        `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [token, data.message, data.latitude, data.longitude, data.tz, data.ip],
+        function (err) {
+          if (err) {
+            console.error('❌ insert conv', err);
+            socket.emit('marv', 'Erreur sauvegarde.');
+            return;
+          }
+          socket.emit('marv', `ok (id=${this.lastID})`);
+        }
+      );
+    });
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('❌ socket disconnected', socket.id, reason);
+  });
 });
 
-
-/**
- * Normalize a port into a number, string, or false.
- */
+server.listen(port, '0.0.0.0', () => {
+  console.log('Listening on port', port);
+});
 
 function normalizePort(val) {
   var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
+  if (isNaN(port)) return val;
+  if (port >= 0) return port;
   return false;
-}
-
-/**
- * Event listener for HTTP server "error" event.
- */
-
-function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
-
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
-
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
-}
-
-/**
- * Event listener for HTTP server "listening" event.
- */
-
-function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
-  console.log('Listening on ' + bind);
-  debug('Listening on ' + bind);
 }

@@ -184,7 +184,7 @@ const actu = async () => {
     date = date.toISOString().split('T')[0];
 
     return await axios.get(
-        `http://api.mediastack.com/v1/news?access_key=${API_NEWS}&countries=fr&limit=8&sources=-franceantilles&date=${date}`
+        `https://api.mediastack.com/v1/news?access_key=${API_NEWS}&countries=fr&limit=8&sources=-franceantilles&date=${date}`
     )
     .then((response) => {
         const data = response.data.data;
@@ -355,8 +355,9 @@ const Marv = async (question, timeZon, messageClient, latitude, longitude, custo
         const laReponse = gptResponse.choices[0].message.content;
         resolve(laReponse);  
     } catch (e) {
-        console.log('une erreur s\'est produit lors de l\'appelle à l\'API de chatGPT :', e)
-    }  
+    console.log("une erreur s'est produit lors de l'appelle à l'API de chatGPT :", e);
+    resolve("Désolé, j'ai eu un souci avec l'IA. Réessaie dans 10 secondes.");
+    }
 });
 
 module.exports = { Marv }

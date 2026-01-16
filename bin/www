@@ -2,6 +2,8 @@
 const http = require('http');
 const { Server } = require('socket.io');
 
+const { Marv } = require('../marv');
+
 const app = require('../app');
 const { db } = require('../db');
 
@@ -27,39 +29,38 @@ io.on('connection', (socket) => {
     socket.handshake.auth?.token?.slice(0, 8)
   );
 
-  socket.on('marv', (data) => {
+  socket.on('marv', async (data) => {
     const token = socket.handshake.auth?.token || data?.token;
+    if (!token) return socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
 
-    if (!token) {
-      socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
-      return;
+    try {
+      // log entree
+      console.log('📨 marv event:', {
+        token: token.slice(0, 8),
+        msg: (data.message || '').slice(0, 120),
+        tz: data.tz,
+        lat: data.latitude,
+        lon: data.longitude
+      });
+
+      // ici: appel marv.js
+      const answer = await marv.handleMessage({
+        token,
+        message: data.message,
+        tz: data.tz,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        ip: data.ip
+      });
+
+      // log sortie
+      console.log('✅ marv answer:', (answer || '').slice(0, 200));
+
+      socket.emit('marv', answer || '(vide)');
+    } catch (e) {
+      console.error('❌ marv.js crashed:', e?.stack || e);
+      socket.emit('marv', 'Erreur serveur (marv.js).');
     }
-
-    db.get(`SELECT * FROM users WHERE token = ?`, [token], (err, user) => {
-      if (err) {
-        console.error('❌ DB', err);
-        socket.emit('marv', 'Erreur serveur.');
-        return;
-      }
-      if (!user) {
-        socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
-        return;
-      }
-
-      db.run(
-        `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [token, data.message, data.latitude, data.longitude, data.tz, data.ip],
-        function (err) {
-          if (err) {
-            console.error('❌ insert conv', err);
-            socket.emit('marv', 'Erreur sauvegarde.');
-            return;
-          }
-          socket.emit('marv', `ok (id=${this.lastID})`);
-        }
-      );
-    });
   });
 
   socket.on('disconnect', (reason) => {

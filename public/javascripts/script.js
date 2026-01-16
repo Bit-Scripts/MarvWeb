@@ -20,19 +20,18 @@ const localisationOptions = {
     maximumAge: 0,
 };
 
+document.addEventListener('DOMContentLoaded', async () => {
+    const tokenFromDom = document.getElementById('token')?.textContent?.trim();
+    const tokenFromLs = localStorage.getItem('marvToken');
 
-function connectSocket(token) {
-    if (socket) {
-        // si deja connecte avec un token different, on reconnect proprement
-        socket.disconnect();
-        socket = null;
-    }
+    const token = tokenFromDom || tokenFromLs;
+
+    if (tokenFromDom) localStorage.setItem('marvToken', tokenFromDom);
 
     socket = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
         withCredentials: true,
-        autoConnect: true,
         auth: { token }
     });
 
@@ -67,7 +66,7 @@ function connectSocket(token) {
             }
         }, 500);
     })
-};
+});
 
 const soundMenu = (event) => {
     event.stopPropagation();

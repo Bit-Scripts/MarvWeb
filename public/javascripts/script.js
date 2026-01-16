@@ -41,18 +41,14 @@ async function getToken() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log(
-        '[DEBUG token DOM]',
-        document.getElementById('token')?.outerHTML
-    );
+    // 1) récupère / crée une session serveur (cookie + token)
+    const r = await fetch('/api/session', { credentials: 'include' });
+    const s = await r.json(); // { token: "..." }
+    const token = s.token;
 
-    const token = await getToken();
+    localStorage.setItem('marvToken', token);
 
-    if (!token) {
-        console.warn("Pas de token dispo.");
-        return;
-    }
-
+    // 2) connecte socket AVEC ce token
     socket = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
@@ -61,10 +57,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     socket.on('connect', () => console.log('Socket connecté !', socket.id));
-    socket.on('connect_error', (e) => console.error('Erreur socket:', e));
+    socket.on('connect_error', (e) => console.error('Erreur de connexion socket:', e));
     socket.on('disconnect', (r) => console.log('Socket déconnecté:', r));
 
-    socket.on('marv', (receive) => {
+    socket.on('marv', receive => {
+    console.log('[marv] receive:', receive);
         console.log('[marv] receive:', receive);
         const history = document.getElementById("history");
         const converter = new showdown.Converter({ extensions: ['codehighlight'] }),

@@ -22,36 +22,37 @@ const localisationOptions = {
 };
 
 async function getToken() {
-    // 1) DOM (si tu le mets dans la page)
+    // 1) si localStorage contient un vieux token tronque, on le vire
+    const tokenFromLs = localStorage.getItem('marvToken');
+    if (tokenFromLs && tokenFromLs.length < 32) {
+        console.warn('[token] localStorage token trop court, purge:', tokenFromLs);
+        localStorage.removeItem('marvToken');
+    }
+
+    // 2) si ton DOM token est vide (chez toi c'est souvent le cas), on ne s'en sert pas
     const tokenFromDom = document.getElementById('token')?.textContent?.trim();
-    if (tokenFromDom) {
+    if (tokenFromDom && tokenFromDom.length >= 32) {
         localStorage.setItem('marvToken', tokenFromDom);
         return tokenFromDom;
     }
 
-    // 2) serveur (cookie -> source de verite)
-    try {
-        const r = await fetch('/api/session?t=' + Date.now(), { credentials: 'include', cache: 'no-store' });
-        if (r.ok) {
-        const j = await r.json();
-        if (j?.token) {
-            localStorage.setItem('marvToken', j.token);
-            return j.token;
-        }
-        }
-    } catch (e) {}
-
-    // 3) localStorage en dernier recours
-    const tokenFromLs = localStorage.getItem('marvToken');
-    if (tokenFromLs) return tokenFromLs;
-
+    // 3) source de verite: serveur
+    const r = await fetch('/api/session?t=' + Date.now(), {
+        credentials: 'include',
+        cache: 'no-store'
+    });
+    const j = await r.json();
+    if (j?.token) {
+        localStorage.setItem('marvToken', j.token);
+        return j.token;
+    }
     return null;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     sessionToken = await getToken();
 
-    console.log('[token] sessionToken=', sessionToken?.slice(0, 8));
+    console.log('[token] sessionToken len=', sessionToken?.length, sessionToken?.slice(0, 12));
 
     socket = io({
         path: '/socket.io',

@@ -8,6 +8,24 @@ const { Marv } = require('../marv');
 const app = require('../app');
 const { db } = require('../db');
 
+function hashIP(ip) {
+  return crypto
+    .createHmac('sha256', process.env.IP_SALT || 'change-me')
+    .update(ip || '')
+    .digest('hex');
+}
+
+function getRealIpFromSocket(socket) {
+  return (
+    socket.handshake.headers['cf-connecting-ip'] ||
+    (socket.handshake.headers['x-forwarded-for']
+      ? String(socket.handshake.headers['x-forwarded-for']).split(',')[0].trim()
+      : '') ||
+    socket.request?.socket?.remoteAddress ||
+    ''
+  );
+}
+
 var port = normalizePort(process.env.PORT || '3017');
 app.set('port', port);
 
@@ -35,26 +53,19 @@ io.on('connection', (socket) => {
 
   console.log('✅ socket connected', socket.id, 'auth.token=', token?.slice(0, 8));
 
-  // cree l'utilisateur a la connexion (1 fois)
-  if (token) {
-    db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, null]);
+  // token doit etre un hex long (32+), sinon c'est ton bug de token tronque
+  if (!token || token.length < 32) {
+    socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
+    socket.disconnect(true);
+    return;
   }
 
+  // cree l'utilisateur a la connexion (1 fois)
+  db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, null]);
+
   socket.on('marv', (data) => {
-    const realIP =
-      socket.handshake.headers['cf-connecting-ip'] ||
-      (socket.handshake.headers['x-forwarded-for'] ? String(socket.handshake.headers['x-forwarded-for']).split(',')[0].trim() : '') ||
-      socket.request?.socket?.remoteAddress ||
-      '';
-
-    const hashedIP = crypto.createHmac('sha256', process.env.IP_SALT || 'change-me')
-      .update(realIP)
-      .digest('hex');
-
-    if (!token) {
-      socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
-      return;
-    }
+    const realIP = getRealIpFromSocket(socket);
+    const hashedIP = hashIP(realIP);
 
     db.get(`SELECT token FROM users WHERE token = ?`, [token], (err, user) => {
       if (err) {
@@ -62,8 +73,25 @@ io.on('connection', (socket) => {
         socket.emit('marv', 'Erreur serveur.');
         return;
       }
+
+      // si jamais course SQLite, on re-insert puis on continue
       if (!user) {
-        socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
+        db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, null], () => {
+          // continue quand meme
+          db.run(
+            `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [token, data.message, data.latitude, data.longitude, data.tz, hashedIP],
+            function (err2) {
+              if (err2) {
+                console.error('❌ insert conv', err2);
+                socket.emit('marv', 'Erreur sauvegarde.');
+                return;
+              }
+              socket.emit('marv', `ok (id=${this.lastID})`);
+            }
+          );
+        });
         return;
       }
 
@@ -71,9 +99,9 @@ io.on('connection', (socket) => {
         `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [token, data.message, data.latitude, data.longitude, data.tz, hashedIP],
-        function (err) {
-          if (err) {
-            console.error('❌ insert conv', err);
+        function (err2) {
+          if (err2) {
+            console.error('❌ insert conv', err2);
             socket.emit('marv', 'Erreur sauvegarde.');
             return;
           }

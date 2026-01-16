@@ -1,8 +1,4 @@
-const socket = io({
-    path: '/socket.io',
-    transports: ['websocket', 'polling']
-});
-
+let socket;
 let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
@@ -23,6 +19,52 @@ const localisationOptions = {
     timeout: 5000,
     maximumAge: 0,
 };
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const token = document.getElementById('token')?.textContent?.trim();
+    if (token) localStorage.setItem('marvToken', token);
+
+    socket = io({
+        path: '/socket.io',
+        transports: ['websocket', 'polling'],
+        auth: {
+            token: localStorage.getItem('marvToken')
+        }
+    });
+
+    socket.on('connect', () => console.log('Socket connecté !', socket.id));
+    socket.on('connect_error', (e) => console.error('Erreur de connexion socket:', e));
+    socket.on('disconnect', (r) => console.log('Socket déconnecté:', r));
+
+    socket.on('marv', receive => {
+        const history = document.getElementById("history");
+        const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
+        text      = receive,
+        html      = converter.makeHtml(text);
+        converter.setFlavor('github');
+        history.innerHTML += "<br/>Marv : ";
+        history.innerHTML += html;
+        history.scrollTo({
+            top: history.scrollHeight,
+            behavior: 'smooth'
+        });
+        let str = receive.toString();
+        str = typeof str === 'string' ? str.split(/[.,;=?!\n]+/) : '';
+        str.filter(removeValue);
+        const iterator = str.values();
+        synthese = setInterval(() => {
+            value = iterator.next();
+            if (value.value == undefined) {
+                clearInterval(synthese);
+                return;
+            } else {
+                syntheseVocale(value.value);
+                talk(true);
+            }
+        }, 500);
+    })
+});
 
 const soundMenu = (event) => {
     event.stopPropagation();
@@ -145,34 +187,6 @@ const removeValue = (value, index, arr) => {
     return false;
 }
 
-socket.on('marv', receive => {
-    const history = document.getElementById("history");
-    const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
-    text      = receive,
-    html      = converter.makeHtml(text);
-    converter.setFlavor('github');
-    history.innerHTML += "<br/>Marv : ";
-    history.innerHTML += html;
-    history.scrollTo({
-        top: history.scrollHeight,
-        behavior: 'smooth'
-    });
-    let str = receive.toString();
-    str = typeof str === 'string' ? str.split(/[.,;=?!\n]+/) : '';
-    str.filter(removeValue);
-    const iterator = str.values();
-    synthese = setInterval(() => {
-        value = iterator.next();
-        if (value.value == undefined) {
-            clearInterval(synthese);
-            return;
-        } else {
-            syntheseVocale(value.value);
-            talk(true);
-        }
-    }, 500);
-})
-
 if ('speechSynthesis' in window) {
     // Speech Synthesis supported 🎉
 } else {
@@ -226,9 +240,6 @@ const startButton = async (event) => {
     start_timestamp = event.timeStamp;
 
     recognition.onresult = async (event) => {
-        const ipString = document.getElementById("ip");
-        let ip = ipString.innerHTML.replaceAll("`", "");
-
         const history = document.getElementById("history");
         if(event.isTrusted) {
             const current = event.resultIndex;
@@ -248,14 +259,15 @@ const startButton = async (event) => {
                 });
                 let tzOffset = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 console.log(tzOffset);
-                console.log("CRD = " + crd.latitude + ' ' + crd.longitude);
+                console.log("CRD = " + crd?.latitude + ', ' + crd?.longitude);
+                if (!socket || !socket.connected) return;
                 socket.emit('marv', {
                     ip: document.getElementById('ip').textContent.trim(),
                     token: localStorage.getItem('marvToken'),
                     message: transcript,              // <- au lieu de text-input
                     tz: tzOffset,
-                    latitude: crd.latitude,
-                    longitude: crd.longitude
+                    latitude: crd?.latitude,
+                    longitude: crd?.longitude
                 });
             }
         }
@@ -371,7 +383,8 @@ const sendMessage = async () => {
         let tzOffset = new Date().getTimezoneOffset(),
         tzInput = document.getElementById('tzOffset');
         tzInput.value = tzOffset*(-1);
-        console.log("CRD = " + crd.latitude + ' ' + crd.longitude);
+        console.log("CRD = " + crd?.latitude + ' ' + crd?.longitude);
+        if (!socket || !socket.connected) return;
         socket.emit('marv', {
             ip: document.getElementById('ip').textContent.trim(),
             token: localStorage.getItem('marvToken'),

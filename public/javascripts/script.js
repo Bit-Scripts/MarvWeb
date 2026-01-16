@@ -2,6 +2,7 @@ let socket = null;
 let sessionToken = null;
 let crd = null;
 let crdPromise = null;
+let recognition = null;
 let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
@@ -200,7 +201,7 @@ const accessMenu = (event) => {
 }
 
 document.addEventListener("click", async function(event) {
-    event.stopPropagation();
+    if (!soundMenuOpen && !accessMenuOpen) return;
     const talkButton = document.getElementById('talk');
     const speechButton = document.getElementById('speech');
     const bwButton = document.getElementById('bw');
@@ -319,60 +320,42 @@ const voicesLoader = new Promise((resolve, reject) => {
 const startButton = async (event) => {
     event.stopPropagation();
     await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    activeRecognition = !activeRecognition;
-    recognition = new SpeechRecognition();
-    recognition.lang = "fr-FR";
-    recognition.start();
+    
     const talk = document.getElementById('talk');
+    
     if (activeRecognition) {
-        talk.style.backgroundColor = '#0707';
-        talk.style.backdropFilter =  'blur(15px)';
-    } else {
-        recognition.stop();
+        shouldRestartRecognition = false;
+        recognition?.stop?.();
+        activeRecognition = false;
         talk.style.backgroundColor = '#700';
         return;
     }
 
-
+    shouldRestartRecognition = true;
+    activeRecognition = true;
+    recognition = new SpeechRecognition();
+    recognition.lang = "fr-FR";
+    recognition.start();
+    
     ignore_onend = false;
 
     start_timestamp = event.timeStamp;
 
     recognition.onresult = async (event) => {
-        const history = document.getElementById("history");
         if(event.isTrusted) {
             const current = event.resultIndex;
             const transcript = event.results[current][0].transcript.replaceAll('Marc', 'Marv');
             const mobileRepeatBug = (current == 1 && transcript == event.results[0][0].transcript);
-            if(!mobileRepeatBug) {
-                history.innerHTML += "<br/>__________________________________________________________"
-                const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
-                text      = transcript,
-                html      = converter.makeHtml(text);
-                converter.setFlavor('github');
-                history.innerHTML += "<br/><br/>User : ";
-                history.innerHTML += html;
-                history.scrollTo({
-                    top: history.scrollHeight,
-                    behavior: 'smooth'
-                });
-                let tzOffset = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                console.log(tzOffset);
-                if (!socket || !socket.connected) return;
+            if (!mobileRepeatBug) {
                 await sendMessageInternal(transcript);
             }
-        }
-        if (history.selectionStart == history.selectionEnd) {
-            history.scrollBottom = history.scrollHeight;
         }
     };
 
     recognition.onend = () => {
+        if (!shouldRestartRecognition) return;
         recognition.start();
-        activeRecognition = true;
-        talk.style.backgroundColor = '#0707';
-        talk.style.backdropFilter =  'blur(15px)';
-    }
+    };
 
     recognition.onspeechend = async () => {
         recognition.stop();

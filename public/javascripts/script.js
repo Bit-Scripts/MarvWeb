@@ -336,8 +336,6 @@ const startButton = async (event) => {
     recognition.start();
     talk.style.backgroundColor = '#0707';
     talk.style.backdropFilter =  'blur(15px)';
-    
-    ignore_onend = false;
 
     start_timestamp = event.timeStamp;
 

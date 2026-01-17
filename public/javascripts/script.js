@@ -25,6 +25,14 @@ const localisationOptions = {
     maximumAge: 0,
 };
 
+const cleanMarkdownForSpeech = (text) => {
+    return text
+        .replace(/[*#_>`~]/g, '') // Enlève *, #, _, >, `, ~
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Garde le texte des liens, enlève l'URL
+        .replace(/\n+/g, ' ') // Remplace les retours à la ligne par des espaces
+        .trim();
+};
+
 function isValidToken(t) {
     return typeof t === 'string' && /^[0-9a-f]+$/i.test(t) && t.length >= 32;
 }
@@ -169,14 +177,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // ARRÊTE toute lecture en cours pour éviter les superpositions
         window.speechSynthesis.cancel(); 
 
+        // Nettoyage et découpage
         let str = receive.toString();
-        // On découpe par phrases (points, virgules, retours à la ligne)
-        let phrases = str.split(/[.,;=?!\n]+/).filter(p => p.trim().length > 0);
+        let phrases = str.split(/[.!?;:\n]+/).filter(p => p.trim().length > 0);
         
-        // 3. Lecture séquentielle (une phrase après l'autre)
         for (const phrase of phrases) {
-            // On attend que chaque phrase soit finie avant de passer à la suivante
-            await syntheseVocale(phrase.trim());
+            // ON NETTOIE ICI AVANT DE PARLER
+            const cleanPhrase = cleanMarkdownForSpeech(phrase);
+            if (cleanPhrase) await syntheseVocale(cleanPhrase);
         }
     });
     // IMPORTANT: utilise TOUJOURS "token" (celui du DOMContentLoaded), pas localStorage
@@ -420,37 +428,35 @@ const syntheseVocale = async (text) => {
     if (!authorizeToSpeak || !text) return;
 
     return new Promise((resolve) => {
-        const toSpeak = new SpeechSynthesisUtterance(text);
-        toSpeak.lang = "fr-FR";
-        toSpeak.voice = voice;
-        toSpeak.rate = 1;
+        const swallow = new SpeechSynthesisUtterance(text);
+        swallow.lang = "fr-FR";
+        swallow.voice = voice;
 
-        toSpeak.onstart = () => {
+        swallow.onstart = () => {
             isBotSpeaking = true;
             talk(true);
             if (recognition && activeRecognition) {
-                recognition.abort(); // On coupe le micro pendant que Marv parle
+                // On utilise abort() pour couper proprement sans déclencher d'erreurs en boucle
+                try { recognition.abort(); } catch(e) {}
             }
         };
 
-        toSpeak.onend = () => {
+        const endSpeaking = () => {
             isBotSpeaking = false;
             talk(false);
-            if (activeRecognition) {
-                try { recognition.start(); } catch(e) {}
+            // RELANCE CRUCIALE ICI
+            if (activeRecognition && recognition) {
+                try { recognition.start(); } catch(e) { /* Déjà démarré */ }
             }
-            resolve(); // Signale que la phrase est finie
-        };
-
-        toSpeak.onerror = () => {
-            isBotSpeaking = false;
             resolve();
         };
 
-        // UN SEUL APPEL ICI
-        window.speechSynthesis.speak(toSpeak);
+        swallow.onend = endSpeaking;
+        swallow.onerror = endSpeaking;
+
+        window.speechSynthesis.speak(swallow);
     });
-}
+};
 
 const toggleSynth = (event) => {
     event.stopPropagation();

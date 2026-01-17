@@ -399,42 +399,39 @@ voicesLoader.then(voices => {
 });
 
 const syntheseVocale = async (text) => {
-    if (authorizeToSpeak) {
-        return new Promise((resolve) => {
-            const toSpeak = new SpeechSynthesisUtterance(text);
-            toSpeak.lang = "fr-FR";
-            toSpeak.rate = 1;
-            toSpeak.voice = voice;
-            toSpeak.addEventListener("end", () => {
-                resolve();
-            });
+    if (!authorizeToSpeak || !text) return;
 
-            synth.speak(toSpeak);
+    return new Promise((resolve) => {
+        const toSpeak = new SpeechSynthesisUtterance(text);
+        toSpeak.lang = "fr-FR";
+        toSpeak.voice = voice;
+        toSpeak.rate = 1;
 
-            toSpeak.onstart = () => {
-                isBotSpeaking = true;
-                talk(true); // Active l'animation du bot
-                
-                // On coupe temporairement le micro pour éviter l'écho
-                if (recognition && activeRecognition) {
-                    recognition.abort();
-                }
-            };
+        toSpeak.onstart = () => {
+            isBotSpeaking = true;
+            talk(true);
+            if (recognition && activeRecognition) {
+                recognition.abort(); // On coupe le micro pendant que Marv parle
+            }
+        };
 
-            toSpeak.onend = () => {
-                isBotSpeaking = false;
-                talk(false); // Arrête l'animation
-                
-                // On relance le micro seulement si l'utilisateur avait activé le mode "talk"
-                if (activeRecognition) {
-                    try { recognition.start(); } catch(e) {}
-                }
-                resolve();
-            };
+        toSpeak.onend = () => {
+            isBotSpeaking = false;
+            talk(false);
+            if (activeRecognition) {
+                try { recognition.start(); } catch(e) {}
+            }
+            resolve(); // Signale que la phrase est finie
+        };
 
-            synth.speak(toSpeak);
-        });
-    }
+        toSpeak.onerror = () => {
+            isBotSpeaking = false;
+            resolve();
+        };
+
+        // UN SEUL APPEL ICI
+        window.speechSynthesis.speak(toSpeak);
+    });
 }
 
 const toggleSynth = (event) => {

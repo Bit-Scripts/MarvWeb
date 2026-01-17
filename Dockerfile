@@ -32,6 +32,8 @@ COPY --from=build /app/views ./views
 COPY --from=build /app/public ./public
 COPY --from=build /app/dist ./dist
 
+RUN mkdir -p /app/data && chmod 777 /app/data
+
 EXPOSE 3017
 CMD ["node", "bin/www"]
 

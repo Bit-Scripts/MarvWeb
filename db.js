@@ -6,7 +6,8 @@ const fs = require('fs');
 // Utilisation du dossier /app/data qui sera monté comme volume dans Coolify
 const dataDir = path.join(process.cwd(), 'data');
 
-if (!fs.existsSync(dataDir)){
+if (!fs.existsSync(dataDir)) {
+    console.log("Creation du dossier data...");
     fs.mkdirSync(dataDir, { recursive: true });
 }
 

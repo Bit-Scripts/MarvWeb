@@ -343,84 +343,63 @@ const voicesLoader = new Promise((resolve, reject) => {
     }
 });
 
-const startButton = async (event) => {
-    event.stopPropagation();
-    
-    // Empêche d'activer le micro si Marv parle déjà
-    if (synth.speaking || isBotSpeaking) {
-        console.warn("Attendez que Marv ait fini de parler.");
-        return;
-    }
-    
-    await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    activeRecognition = !activeRecognition;
-    const talkButton = document.getElementById('talk');
-
-    if (activeRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.lang = "fr-FR";
-        
-        // --- AMÉLIORATIONS ICI ---
-        recognition.continuous = true;     // Continue d'écouter même après une pause
-        recognition.interimResults = false; // N'envoie que les phrases complètes
-        
-        recognition.start();
-        talkButton.style.backgroundColor = '#0707';
-        talkButton.style.backdropFilter = 'blur(15px)';
-    } else {
-        if (recognition) recognition.stop();
-        talkButton.style.backgroundColor = '#700';
-        return;
+// Variable globale pour éviter de recréer l'objet inutilement
+const configureRecognition = () => {
+    if (recognition) {
+        try { recognition.abort(); } catch(e) {}
     }
 
-    ignore_onend = false;
-
-    start_timestamp = event.timeStamp;
+    recognition = new SpeechRecognition();
+    recognition.lang = "fr-FR";
+    recognition.continuous = true;
+    recognition.interimResults = false;
 
     recognition.onresult = async (event) => {
         const current = event.resultIndex;
         let transcript = event.results[current][0].transcript.trim();
-        
-        // On remplace le nom si mal compris
         transcript = transcript.replaceAll('Marc', 'Marv');
 
-        // PROTECTION : On n'envoie que si la phrase fait plus de 2 caractères
-        // Cela évite d'envoyer des "Euh", "Ah" ou des bruits de micro.
         if (transcript.length > 2) {
-            console.log("Envoi du message vocal :", transcript);
+            console.log("Envoi vocal :", transcript);
             await sendMessageInternal(transcript);
-            
-            // OPTIONNEL : Si vous voulez que Marv réponde et coupe le micro 
-            // immédiatement après une phrase, décommentez la ligne suivante :
-            // recognition.stop(); 
         }
     };
 
     recognition.onend = () => {
-        // On ne relance le micro que si l'utilisateur n'a pas cliqué sur "Stop"
-        // ET si le bot n'est pas en train de parler
+        // C'est ici que la magie de la relance opère
         if (activeRecognition && !isBotSpeaking) {
-            try {
-                recognition.start();
-                console.log("Micro relancé automatiquement");
-            } catch (e) {
-                console.error("Erreur de relance micro:", e);
-            }
-        } else if (!activeRecognition) {
-            // Si l'utilisateur a coupé, on remet le bouton en rouge
-            talkButton.style.backgroundColor = '#700';
-            talkButton.style.backdropFilter = 'none';
+            setTimeout(() => {
+                try { recognition.start(); } catch(e) {}
+            }, 300);
         }
     };
 
     recognition.onerror = (event) => {
         console.error("Erreur reco:", event.error);
-        if (event.error !== 'no-speech') {
-            activeRecognition = false;
-            talkButton.style.backgroundColor = '#700';
-        }
+        if (event.error === 'network') alert("Erreur réseau reconnaissance vocale");
     };
-}
+};
+
+const startButton = async (event) => {
+    event.stopPropagation();
+    
+    if (synth.speaking || isBotSpeaking) return;
+
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+    activeRecognition = !activeRecognition;
+    const talkButton = document.getElementById('talk');
+
+    if (activeRecognition) {
+        configureRecognition(); // On configure tout
+        recognition.start();    // On lance
+        talkButton.style.backgroundColor = '#0707';
+        talkButton.style.backdropFilter = 'blur(15px)';
+    } else {
+        if (recognition) recognition.stop();
+        talkButton.style.backgroundColor = '#700';
+    }
+};
 
 voicesLoader.then(voices => {
     voice = voices.find(el => el.name === "Microsoft Julie - French (France)");
@@ -448,15 +427,22 @@ const syntheseVocale = async (text) => {
         const endSpeaking = () => {
             isBotSpeaking = false;
             talk(false);
-            
-            // RELANCE avec un léger délai pour éviter les conflits d'état
+
             if (activeRecognition) {
+                // On attend un tout petit peu que le hardware libère le haut-parleur
                 setTimeout(() => {
-                    try { 
-                        // On vérifie une dernière fois si le bot ne s'est pas remis à parler
-                        if (!isBotSpeaking) recognition.start(); 
-                    } catch(e) { console.warn("Relance auto empêchée ou déjà active"); }
-                }, 300);
+                    if (activeRecognition && !isBotSpeaking) {
+                        try { 
+                            // Si l'objet recognition existe, on le relance simplement
+                            // Ses onresult/onend sont déjà configurés !
+                            recognition.start(); 
+                        } catch(e) {
+                            // Si l'objet a été perdu (rare), on le re-configure
+                            configureRecognition();
+                            recognition.start();
+                        }
+                    }
+                }, 400); // 400ms est plus sûr pour les mobiles
             }
             resolve();
         };

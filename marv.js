@@ -5,7 +5,7 @@ const { find } = require('geo-tz');
 const axios = require('axios');
 let newsToday = "";
 const joursFeries = require("@socialgouv/jours-feries");
-const DEFAULT_MODEL = "gpt-4.1";
+const DEFAULT_MODEL = "gpt-4.1-mini";
 
 const openai = new OpenAI ({
 	organization: organization,

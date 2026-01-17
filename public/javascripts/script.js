@@ -86,7 +86,7 @@ async function sendMessageInternal(message) {
 
     socket.timeout(8000).emit('marv', payload, (err, ack) => {
         if (err) console.error('ACK timeout / error', err);
-        else console.log('ACK', ack); // { ok:true, id:"..." }
+        else console.log('ACK', ack); // { ok:true, id:123 }
     });
 }
 

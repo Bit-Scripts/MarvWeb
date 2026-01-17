@@ -5,14 +5,16 @@ let crdPromise = null;
 let msg = new SpeechSynthesisUtterance();
 let voice = undefined;
 const synth = window.speechSynthesis;
-let authorizeToSpeak = false;
 let normal = true;
 let wb = false;
 let bw = false;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
-let activeRecognition = false;
-let recognition = null;
+
+let authorizeToSpeak = false; // Indique si la synthèse vocale est activée par l'utilisateur
+let activeRecognition = false; // Indique si le micro est activé par l'utilisateur
+let recognition = null; // L'instance de reconnaissance vocale
+let isBotSpeaking = false; // NOUVEAU : Indique si le bot est en train de parler
 
 let soundMenuOpen = false;
 let accessMenuOpen = false;
@@ -151,34 +153,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     socket.on('connect_error', (e) => console.error('Erreur de connexion socket:', e));
     socket.on('disconnect', (r) => console.log('Socket déconnecté:', r));
 
-    socket.on('marv', receive => {
+    socket.on('marv', async (receive) => {
         console.log('[marv] receive:', receive);
         const history = document.getElementById("history");
-        const converter = new showdown.Converter({ extensions: ['codehighlight'] }),
-        text      = receive,
-        html      = converter.makeHtml(text);
+        const converter = new showdown.Converter({ extensions: ['codehighlight'] });
         converter.setFlavor('github');
-        history.innerHTML += "<br/>Marv : ";
-        history.innerHTML += html;
-        history.scrollTo({
-            top: history.scrollHeight,
-            behavior: 'smooth'
-        });
+        
+        const html = converter.makeHtml(receive);
+        history.innerHTML += "<br/>Marv : " + html;
+        history.scrollTo({ top: history.scrollHeight, behavior: 'smooth' });
+
+        // Correction : On nettoie les anciennes lectures avant d'en lancer une nouvelle
+        window.speechSynthesis.cancel(); 
+
         let str = receive.toString();
-        str = typeof str === 'string' ? str.split(/[.,;=?!\n]+/) : '';
-        str.filter(removeValue);
-        const iterator = str.values();
-        synthese = setInterval(() => {
-            value = iterator.next();
-            if (value.value == undefined) {
-                clearInterval(synthese);
-                return;
-            } else {
-                syntheseVocale(value.value);
-                talk(true);
-            }
-        }, 500);
-    })
+        // On découpe par phrases pour une lecture plus naturelle
+        let phrases = typeof str === 'string' ? str.split(/[.!?;:\n]+/).filter(p => p.trim().length > 0) : [];
+        
+        // On utilise une boucle asynchrone plutôt qu'un setInterval pour garantir l'ordre
+        for (const phrase of phrases) {
+            await syntheseVocale(phrase);
+        }
+    });
     // IMPORTANT: utilise TOUJOURS "token" (celui du DOMContentLoaded), pas localStorage
     window.__MARV_TOKEN__ = sessionToken;
 });
@@ -333,6 +329,13 @@ const voicesLoader = new Promise((resolve, reject) => {
 
 const startButton = async (event) => {
     event.stopPropagation();
+    
+    // Empêche d'activer le micro si Marv parle déjà
+    if (synth.speaking || isBotSpeaking) {
+        console.warn("Attendez que Marv ait fini de parler.");
+        return;
+    }
+    
     await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     activeRecognition = !activeRecognition;
     recognition = new SpeechRecognition();
@@ -393,7 +396,7 @@ voicesLoader.then(voices => {
 
 const syntheseVocale = async (text) => {
     if (authorizeToSpeak) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             const toSpeak = new SpeechSynthesisUtterance(text);
             toSpeak.lang = "fr-FR";
             toSpeak.rate = 1;
@@ -404,22 +407,23 @@ const syntheseVocale = async (text) => {
 
             synth.speak(toSpeak);
 
-            toSpeak.onstart = (event) => {
+            toSpeak.onstart = () => {
+                isBotSpeaking = true;
+                talk(true); // Active l'animation du bot
+                
+                // On coupe temporairement le micro pour éviter l'écho
                 if (recognition && activeRecognition) {
-                    recognition.stop(); 
-                    console.log("Reconnaissance mise en pause pendant la lecture...");
+                    recognition.abort();
                 }
             };
 
-            toSpeak.onend = (event) => {
-                talk(false);
+            toSpeak.onend = () => {
+                isBotSpeaking = false;
+                talk(false); // Arrête l'animation
                 
-                // --- AJOUT : Relancer la reconnaissance après la phrase ---
+                // On relance le micro seulement si l'utilisateur avait activé le mode "talk"
                 if (activeRecognition) {
-                    try {
-                        recognition.start();
-                        console.log("Reconnaissance réactivée.");
-                    } catch(e) { console.error("Erreur relance reco:", e); }
+                    try { recognition.start(); } catch(e) {}
                 }
                 resolve();
             };
@@ -427,7 +431,7 @@ const syntheseVocale = async (text) => {
             synth.speak(toSpeak);
         });
     }
-} 
+}
 
 const toggleSynth = (event) => {
     event.stopPropagation();

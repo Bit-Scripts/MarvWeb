@@ -1,16 +1,19 @@
 // db.js
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
-// FORCE le chemin vers la racine du projet, peu importe d'où le script est appelé
-// process.cwd() renvoie le dossier où vous avez lancé la commande npm start
-const dbPath = path.join(process.cwd(), 'fish.db'); 
+// Utilisation du dossier /app/data qui sera monté comme volume dans Coolify
+const dataDir = path.join(process.cwd(), 'data');
 
-console.log('--- DB PATH:', dbPath); // LOG DE DEBUG CRUCIAL
+if (!fs.existsSync(dataDir)){
+    fs.mkdirSync(dataDir, { recursive: true });
+}
 
+const dbPath = path.join(dataDir, 'fish.db'); 
 const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) console.error('❌ Erreur ouverture fish.db:', err.message);
-    else console.log('✅ Connecté à fish.db');
+    if (err) console.error('❌ Erreur:', err.message);
+    else console.log('✅ DB persistante connectée sur ' + dbPath);
 });
 
 function initTables() {

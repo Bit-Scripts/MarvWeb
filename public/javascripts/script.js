@@ -95,12 +95,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     socket.on('connect_error', (err) => {
         if (err.message === "SESSION_NOT_FOUND" || err.message === "INVALID_TOKEN") {
-            console.warn("Session expirée ou invalide, nettoyage...");
-            localStorage.removeItem('marvToken');
-            window.location.reload(); // Force la régénération par Express
+            console.warn("Session invalide détectée.");
+            
+            // On récupère un indicateur de tentative pour éviter la boucle infinie
+            const retryCount = parseInt(sessionStorage.getItem('reload_retry') || '0');
+
+            if (retryCount < 3) {
+                sessionStorage.setItem('reload_retry', (retryCount + 1).toString());
+                localStorage.removeItem('marvToken');
+                // Optionnel : supprimer le cookie si possible côté client ou laisser Express le faire
+                window.location.reload();
+            } else {
+                console.error("Boucle de redirection détectée. Arrêt du rechargement automatique.");
+                alert("Erreur de session persistante. Veuillez vider votre cache navigateur.");
+                sessionStorage.removeItem('reload_retry');
+            }
         }
     });
-        
+
+    // Réinitialiser le compteur si la connexion réussit
+    socket.on('connect', () => {
+        console.log('Socket connecté !', socket.id);
+        sessionStorage.removeItem('reload_retry');
+    });
+
     const form = document.getElementById('formPrompt');
     if (form) {
         form.addEventListener('submit', async (e) => {

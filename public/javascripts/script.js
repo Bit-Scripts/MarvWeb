@@ -12,6 +12,7 @@ let bw = false;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 let activeRecognition = false;
+let recognition = null;
 
 let soundMenuOpen = false;
 let accessMenuOpen = false;
@@ -404,12 +405,26 @@ const syntheseVocale = async (text) => {
             synth.speak(toSpeak);
 
             toSpeak.onstart = (event) => {
-                talk(true);
+                if (recognition && activeRecognition) {
+                    recognition.stop(); 
+                    console.log("Reconnaissance mise en pause pendant la lecture...");
+                }
             };
 
             toSpeak.onend = (event) => {
                 talk(false);
+                
+                // --- AJOUT : Relancer la reconnaissance après la phrase ---
+                if (activeRecognition) {
+                    try {
+                        recognition.start();
+                        console.log("Reconnaissance réactivée.");
+                    } catch(e) { console.error("Erreur relance reco:", e); }
+                }
+                resolve();
             };
+
+            synth.speak(toSpeak);
         });
     }
 } 

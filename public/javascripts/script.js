@@ -164,7 +164,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     socket.on('marv', async (receive) => {
         console.log('[marv] receive:', receive);
         
-        // 1. Affichage HTML
         const history = document.getElementById("history");
         const converter = new showdown.Converter({ extensions: ['codehighlight'] });
         converter.setFlavor('github');
@@ -173,19 +172,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         history.innerHTML += "<br/>Marv : " + html;
         history.scrollTo({ top: history.scrollHeight, behavior: 'smooth' });
 
-        // 2. Préparation de la voix
-        // ARRÊTE toute lecture en cours pour éviter les superpositions
         window.speechSynthesis.cancel(); 
 
-        // Nettoyage et découpage
         let str = receive.toString();
+        // On split par phrases
         let phrases = str.split(/[.!?;:\n]+/).filter(p => p.trim().length > 0);
         
+        // On marque le début du discours global
+        isBotSpeaking = true; 
+
         for (const phrase of phrases) {
-            // ON NETTOIE ICI AVANT DE PARLER
             const cleanPhrase = cleanMarkdownForSpeech(phrase);
-            if (cleanPhrase) await syntheseVocale(cleanPhrase);
+            if (cleanPhrase) {
+                await syntheseVocale(cleanPhrase);
+            }
         }
+        
+        // Une fois TOUTES les phrases finies, on s'assure que l'état est bien reset
+        isBotSpeaking = false;
     });
     // IMPORTANT: utilise TOUJOURS "token" (celui du DOMContentLoaded), pas localStorage
     window.__MARV_TOKEN__ = sessionToken;
@@ -444,9 +448,15 @@ const syntheseVocale = async (text) => {
         const endSpeaking = () => {
             isBotSpeaking = false;
             talk(false);
-            // RELANCE CRUCIALE ICI
-            if (activeRecognition && recognition) {
-                try { recognition.start(); } catch(e) { /* Déjà démarré */ }
+            
+            // RELANCE avec un léger délai pour éviter les conflits d'état
+            if (activeRecognition) {
+                setTimeout(() => {
+                    try { 
+                        // On vérifie une dernière fois si le bot ne s'est pas remis à parler
+                        if (!isBotSpeaking) recognition.start(); 
+                    } catch(e) { console.warn("Relance auto empêchée ou déjà active"); }
+                }, 300);
             }
             resolve();
         };

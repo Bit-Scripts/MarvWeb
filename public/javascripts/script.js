@@ -342,54 +342,72 @@ const startButton = async (event) => {
     
     await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     activeRecognition = !activeRecognition;
-    recognition = new SpeechRecognition();
-    recognition.lang = "fr-FR";
-    recognition.start();
-    const talk = document.getElementById('talk');
+    const talkButton = document.getElementById('talk');
+
     if (activeRecognition) {
-        talk.style.backgroundColor = '#0707';
-        talk.style.backdropFilter =  'blur(15px)';
+        recognition = new SpeechRecognition();
+        recognition.lang = "fr-FR";
+        
+        // --- AMÉLIORATIONS ICI ---
+        recognition.continuous = true;     // Continue d'écouter même après une pause
+        recognition.interimResults = false; // N'envoie que les phrases complètes
+        
+        recognition.start();
+        talkButton.style.backgroundColor = '#0707';
+        talkButton.style.backdropFilter = 'blur(15px)';
     } else {
-        recognition.stop();
-        talk.style.backgroundColor = '#700';
+        if (recognition) recognition.stop();
+        talkButton.style.backgroundColor = '#700';
         return;
     }
-
 
     ignore_onend = false;
 
     start_timestamp = event.timeStamp;
 
     recognition.onresult = async (event) => {
-        if(event.isTrusted) {
-            const current = event.resultIndex;
-            const transcript = event.results[current][0].transcript.replaceAll('Marc', 'Marv');
-            const mobileRepeatBug = (current == 1 && transcript == event.results[0][0].transcript);
-            if (!mobileRepeatBug) {
-                await sendMessageInternal(transcript);
-            }
+        const current = event.resultIndex;
+        let transcript = event.results[current][0].transcript.trim();
+        
+        // On remplace le nom si mal compris
+        transcript = transcript.replaceAll('Marc', 'Marv');
+
+        // PROTECTION : On n'envoie que si la phrase fait plus de 2 caractères
+        // Cela évite d'envoyer des "Euh", "Ah" ou des bruits de micro.
+        if (transcript.length > 2) {
+            console.log("Envoi du message vocal :", transcript);
+            await sendMessageInternal(transcript);
+            
+            // OPTIONNEL : Si vous voulez que Marv réponde et coupe le micro 
+            // immédiatement après une phrase, décommentez la ligne suivante :
+            // recognition.stop(); 
         }
     };
 
     recognition.onend = () => {
-        recognition.start();
-        activeRecognition = true;
-        talk.style.backgroundColor = '#0707';
-        talk.style.backdropFilter =  'blur(15px)';
-    }
+        // On ne relance le micro que si l'utilisateur n'a pas cliqué sur "Stop"
+        // ET si le bot n'est pas en train de parler
+        if (activeRecognition && !isBotSpeaking) {
+            try {
+                recognition.start();
+                console.log("Micro relancé automatiquement");
+            } catch (e) {
+                console.error("Erreur de relance micro:", e);
+            }
+        } else if (!activeRecognition) {
+            // Si l'utilisateur a coupé, on remet le bouton en rouge
+            talkButton.style.backgroundColor = '#700';
+            talkButton.style.backdropFilter = 'none';
+        }
+    };
 
-    recognition.onspeechend = async () => {
-        recognition.stop();
-        activeRecognition = false;
-        talk.style.backgroundColor = '#700';
-    }
-
-    recognition.onerror = async (event) => {
-        console.error(event.error);
-        recognition.stop();
-        activeRecognition = false;
-        talk.style.backgroundColor = '#700';
-    }
+    recognition.onerror = (event) => {
+        console.error("Erreur reco:", event.error);
+        if (event.error !== 'no-speech') {
+            activeRecognition = false;
+            talkButton.style.backgroundColor = '#700';
+        }
+    };
 }
 
 voicesLoader.then(voices => {

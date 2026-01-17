@@ -12,9 +12,15 @@ if (!fs.existsSync(dataDir)) {
 }
 
 const dbPath = path.join(dataDir, 'fish.db'); 
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) console.error('❌ Erreur:', err.message);
-    else console.log('✅ DB persistante connectée sur ' + dbPath);
+const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
+    if (err) {
+        console.error('❌ Erreur SQLITE_CANTOPEN:', err.message);
+        console.error('Vérifiez les droits sur:', dbPath);
+    } else {
+        // Optionnel : Forcer le mode de journalisation WAL pour Docker
+        db.run("PRAGMA journal_mode = WAL;");
+        console.log('✅ DB connectée sur:', dbPath);
+    }
 });
 
 function initTables() {

@@ -70,66 +70,72 @@ io.on('connection', (socket) => {
   // cree l'utilisateur a la connexion (1 fois)
   db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, null]);
 
-  socket.on('marv', async (data) => {
-    const realIP = getRealIpFromSocket(socket);
-    const hashedIP = hashIP(realIP);
+  socket.on('marv', async (data, cb) => {
+    const id = crypto.randomUUID();
 
-    if (!token) {
-      socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
-      return;
-    }
+    // Ack immediat (si le client a fourni un cb)
+    cb?.({ ok: true, id });
 
-    db.get(`SELECT token FROM users WHERE token = ?`, [token], async (err, user) => {
-      if (err) {
-        console.error('❌ DB', err);
-        socket.emit('marv', 'Erreur serveur.');
-        return;
-      }
+    try {
+      const realIP = getRealIpFromSocket(socket);
+      const hashedIP = hashIP(realIP);
 
-      if (!user) {
+      if (!token) {
         socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
         return;
       }
 
-      // 1️⃣ Sauvegarde la question utilisateur
-      db.run(
-        `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [token, data.message, data.latitude, data.longitude, data.tz, hashedIP],
-        async function (err2) {
-          if (err2) {
-            console.error('❌ insert conv', err2);
-            socket.emit('marv', 'Erreur sauvegarde.');
-            return;
-          }
-
-          try {
-            // 2️⃣ Appel IA
-            const reply = await Marv(
-              data.message, // question
-              data.tz, // timezone
-              data.message, // messageClient (oui, pareil ici)
-              data.latitude,
-              data.longitude
-            );
-
-            // 3️⃣ Sauvegarde la reponse IA (optionnel mais conseille)
-            db.run(
-              `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
-               VALUES (?, ?, ?, ?, ?, ?)`,
-              [token, reply, data.latitude, data.longitude, data.tz, hashedIP]
-            );
-
-            // 4️⃣ Envoie la reponse au client
-            socket.emit('marv', reply);
-
-          } catch (e) {
-            console.error('❌ Marv error', e);
-            socket.emit('marv', "Désolé, j'ai eu un souci avec l'IA.");
-          }
+      db.get(`SELECT token FROM users WHERE token = ?`, [token], async (err, user) => {
+        if (err) {
+          console.error('❌ DB', err);
+          socket.emit('marv', 'Erreur serveur.');
+          return;
         }
-      );
-    });
+        if (!user) {
+          socket.emit('marv', 'Erreur: Session invalide. Recharge la page.');
+          return;
+        }
+
+        // Sauvegarde question
+        db.run(
+          `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+          [token, data.message, data.latitude, data.longitude, data.tz, hashedIP],
+          async function (err2) {
+            if (err2) {
+              console.error('❌ insert conv', err2);
+              socket.emit('marv', 'Erreur sauvegarde.');
+              return;
+            }
+
+            try {
+              const reply = await Marv(
+                data.message,
+                data.tz,
+                data.message,
+                data.latitude,
+                data.longitude
+              );
+
+              // Sauvegarde reponse
+              db.run(
+                `INSERT INTO conversations (token, message, latitude, longitude, timezone, hashed_ip)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+                [token, reply, data.latitude, data.longitude, data.tz, hashedIP]
+              );
+
+              socket.emit('marv', reply);
+            } catch (e) {
+              console.error('❌ Marv error', e);
+              socket.emit('marv', "Désolé, j'ai eu un souci avec l'IA.");
+            }
+          }
+        );
+      });
+    } catch (e) {
+      console.error('❌ handler marv error', e);
+      socket.emit('marv', "Erreur serveur.");
+    }
   });
 
   socket.on('disconnect', (reason) => {

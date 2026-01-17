@@ -84,12 +84,18 @@ async function sendMessageInternal(message) {
     // 3) envoi socket
     if (socket?.connected) {
         socket.emit('marv', {
+            ip: document.getElementById('ip')?.textContent?.trim(),
             message,
             tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
             latitude: coords?.latitude,
             longitude: coords?.longitude
         });
     }
+
+    socket.timeout(8000).emit('marv', payload, (err, ack) => {
+        if (err) console.error('ACK timeout / error', err);
+        else console.log('ACK', ack); // { ok:true, id:"..." }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

@@ -63,15 +63,11 @@ async function getToken() {
 
 async function sendMessageInternal(message) {
     if (!message || !message.trim()) return;
+    if (!socket?.connected) return;
 
     let coords = null;
-    try {
-        coords = await ensureCoord();
-    } catch (e) {
-        console.warn("No geoloc", e);
-    }
+    try { coords = await ensureCoord(); } catch (e) { console.warn("No geoloc", e); }
 
-    // 2) affichage local
     const history = document.getElementById("history");
     const converter = new showdown.Converter({ extensions: ['codehighlight'] });
     converter.setFlavor('github');
@@ -81,16 +77,12 @@ async function sendMessageInternal(message) {
     history.innerHTML += converter.makeHtml(message);
     history.scrollTo({ top: history.scrollHeight, behavior: 'smooth' });
 
-    // 3) envoi socket
-    if (socket?.connected) {
-        socket.emit('marv', {
-            ip: document.getElementById('ip')?.textContent?.trim(),
-            message,
-            tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            latitude: coords?.latitude,
-            longitude: coords?.longitude
-        });
-    }
+    const payload = {
+        message,
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        latitude: coords?.latitude,
+        longitude: coords?.longitude
+    };
 
     socket.timeout(8000).emit('marv', payload, (err, ack) => {
         if (err) console.error('ACK timeout / error', err);
@@ -109,15 +101,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     socket = io({
         path: '/socket.io',
-        transports: ['websocket', 'polling'],
+        transports: ['websocket'],
         auth: { token: sessionToken }
     });
+
     
     const form = document.getElementById('formPrompt');
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const value = form.elements.prompt.value;
+            const value = (form.elements.prompt.value || '').trim();
+            form.elements.prompt.value = "";
+            if (!value) return;
             await sendMessageInternal(value);
 
             const formData = new URLSearchParams();

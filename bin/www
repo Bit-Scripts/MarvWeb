@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
   db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, null]);
 
   socket.on('marv', async (data, cb) => {
-    const id = crypto.randomUUID();
+    const done = typeof cb === 'function' ? cb : () => {};
 
     // Ack immediat (si le client a fourni un cb)
     cb?.({ ok: true, id });
@@ -123,7 +123,10 @@ io.on('connection', (socket) => {
                 VALUES (?, ?, ?, ?, ?, ?)`,
                 [token, reply, data.latitude, data.longitude, data.tz, hashedIP]
               );
+              // quand tu as inséré la question:
+              done({ ok: true, id: this.lastID });
 
+              // puis tu envoies la réponse IA normalement:
               socket.emit('marv', reply);
             } catch (e) {
               console.error('❌ Marv error', e);

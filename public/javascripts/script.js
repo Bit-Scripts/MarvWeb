@@ -155,24 +155,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     socket.on('marv', async (receive) => {
         console.log('[marv] receive:', receive);
+        
+        // 1. Affichage HTML
         const history = document.getElementById("history");
         const converter = new showdown.Converter({ extensions: ['codehighlight'] });
         converter.setFlavor('github');
-        
         const html = converter.makeHtml(receive);
+        
         history.innerHTML += "<br/>Marv : " + html;
         history.scrollTo({ top: history.scrollHeight, behavior: 'smooth' });
 
-        // Correction : On nettoie les anciennes lectures avant d'en lancer une nouvelle
+        // 2. Préparation de la voix
+        // ARRÊTE toute lecture en cours pour éviter les superpositions
         window.speechSynthesis.cancel(); 
 
         let str = receive.toString();
-        // On découpe par phrases pour une lecture plus naturelle
-        let phrases = typeof str === 'string' ? str.split(/[.!?;:\n]+/).filter(p => p.trim().length > 0) : [];
+        // On découpe par phrases (points, virgules, retours à la ligne)
+        let phrases = str.split(/[.,;=?!\n]+/).filter(p => p.trim().length > 0);
         
-        // On utilise une boucle asynchrone plutôt qu'un setInterval pour garantir l'ordre
+        // 3. Lecture séquentielle (une phrase après l'autre)
         for (const phrase of phrases) {
-            await syntheseVocale(phrase);
+            // On attend que chaque phrase soit finie avant de passer à la suivante
+            await syntheseVocale(phrase.trim());
         }
     });
     // IMPORTANT: utilise TOUJOURS "token" (celui du DOMContentLoaded), pas localStorage

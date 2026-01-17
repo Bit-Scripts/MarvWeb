@@ -40,40 +40,31 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 app.set('trust proxy', 1);
 
-// IMPORTANT: cookieParser une seule fois, au debut
 app.use(cookieParser());
-
-// cloudflare restore avant de lire l'ip
 app.use(cloudflare.restore());
-
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 
-// session (UNIQUE)
+// Session Middleware
 app.use((req, res, next) => {
   const realIP = getRealIp(req);
   const hashedIP = hashIP(realIP);
-
   let token = req.cookies?.marvToken;
 
-  if (!token) {
+  if (!token || token.length < 32) {
     token = generateUniqueToken();
-
-    // cookie secure en prod + httpOnly true (le client ne le lit pas directement)
     res.cookie('marvToken', token, {
       maxAge: 365 * 24 * 60 * 60 * 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax'
     });
-
-    // evite les erreurs si token existe deja (rare mais possible)
+    // On insère l'IP hachée dès la création du token
     db.run(`INSERT OR IGNORE INTO users (token, hashed_ip) VALUES (?, ?)`, [token, hashedIP]);
   } else {
-    // si tu veux, tu peux aussi maj hashed_ip ici (optionnel)
-    db.run(`UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE token = ?`, [token]);
+    db.run(`UPDATE users SET last_seen = CURRENT_TIMESTAMP, hashed_ip = ? WHERE token = ?`, [hashedIP, token]);
   }
 
   req.userToken = token;
@@ -81,38 +72,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// statics
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// healthcheck
 app.get('/healthz', (req, res) => res.status(200).send('ok'));
-
-// routes
 app.get('/', (req, res) => res.redirect('/legacy'));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-app.get('/get-prompt', (req, res) => {
-  const prompt = req.cookies.chatgptPrompt;
-  promptStore.setPrompt(prompt);
-  res.send(`Le prompt stocké est : ${prompt}`);
-});
-
-// utile pour debug + client (si DOM vide)
 app.get('/api/session', (req, res) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.set('Pragma', 'no-cache');
-  res.set('Expires', '0');
-  res.set('Surrogate-Control', 'no-store');
-
-  res.json({
-    token: req.userToken,
-    hashedIP: req.hashedIP
-  });
+  res.json({ token: req.userToken, hashedIP: req.hashedIP });
 });
 
-// fallback SPA
 app.get(/^\/(?!api|users|legacy|privacy|socket\.io).*/, (req, res, next) => {
   if (req.path.includes('.')) return next();
   return res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -120,10 +91,8 @@ app.get(/^\/(?!api|users|legacy|privacy|socket\.io).*/, (req, res, next) => {
 
 app.use((req, res, next) => next(createError(404)));
 app.use((err, req, res, next) => {
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
   res.status(err.status || 500);
-  res.render('error');
+  res.render('error', { message: err.message, error: req.app.get('env') === 'development' ? err : {} });
 });
 
 module.exports = app;

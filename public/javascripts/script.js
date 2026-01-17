@@ -30,26 +30,17 @@ async function getToken() {
     const tokenFromDom = document.getElementById('token')?.textContent?.trim();
     const tokenFromLs = localStorage.getItem('marvToken');
 
-    // 1) DOM
     if (isValidToken(tokenFromDom)) {
         localStorage.setItem('marvToken', tokenFromDom);
         return tokenFromDom;
     }
 
-    // 2) localStorage
-    if (isValidToken(tokenFromLs)) {
-        return tokenFromLs;
-    }
+    if (isValidToken(tokenFromLs)) return tokenFromLs;
 
-    // si token LS est invalide, on le vire pour eviter de boucler dessus
-    if (tokenFromLs) localStorage.removeItem('marvToken');
+    // Nettoyage si invalide
+    localStorage.removeItem('marvToken');
 
-    // 3) fallback serveur
-    const r = await fetch('/api/session?t=' + Date.now(), {
-        credentials: 'include',
-        cache: 'no-store'
-    });
-
+    const r = await fetch('/api/session?t=' + Date.now(), { credentials: 'include' });
     if (!r.ok) return null;
     const j = await r.json();
 
@@ -57,7 +48,6 @@ async function getToken() {
         localStorage.setItem('marvToken', j.token);
         return j.token;
     }
-
     return null;
 }
 
@@ -92,20 +82,25 @@ async function sendMessageInternal(message) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     sessionToken = await getToken();
-    console.log('[token] sessionToken=', sessionToken);
 
     if (!sessionToken) {
-        console.error("Pas de token de session");
+        console.error("Échec de récupération de session");
         return;
     }
 
     socket = io({
-        path: '/socket.io',
-        transports: ['websocket'],
-        auth: { token: sessionToken }
+        auth: { token: sessionToken },
+        transports: ['websocket']
     });
 
-    
+    socket.on('connect_error', (err) => {
+        if (err.message === "SESSION_NOT_FOUND" || err.message === "INVALID_TOKEN") {
+            console.warn("Session expirée ou invalide, nettoyage...");
+            localStorage.removeItem('marvToken');
+            window.location.reload(); // Force la régénération par Express
+        }
+    });
+        
     const form = document.getElementById('formPrompt');
     if (form) {
         form.addEventListener('submit', async (e) => {

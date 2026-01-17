@@ -32,6 +32,9 @@ COPY --from=build /app/views ./views
 COPY --from=build /app/public ./public
 COPY --from=build /app/dist ./dist
 
+# On crée le dossier et on donne les droits d'écriture complets (777)
+# pour que SQLite puisse créer fish.db et ses fichiers temporaires (-wal, -shm)
+USER root
 RUN mkdir -p /app/data && chmod -R 777 /app/data
 
 EXPOSE 3017

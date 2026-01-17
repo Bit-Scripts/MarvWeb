@@ -3,23 +3,22 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// Utilisation du dossier /app/data qui sera monté comme volume dans Coolify
 const dataDir = path.join(process.cwd(), 'data');
-
 if (!fs.existsSync(dataDir)) {
-    console.log("Creation du dossier data...");
-    fs.mkdirSync(dataDir, { recursive: true });
+    fs.mkdirSync(dataDir, { recursive: true, mode: 0o777 });
 }
 
-const dbPath = path.join(dataDir, 'fish.db'); 
+const dbPath = path.join(dataDir, 'fish.db');
+
+// Utilisation de drapeaux explicites pour l'ouverture
 const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
     if (err) {
         console.error('❌ Erreur SQLITE_CANTOPEN:', err.message);
         console.error('Vérifiez les droits sur:', dbPath);
     } else {
-        // Optionnel : Forcer le mode de journalisation WAL pour Docker
+        // Mode WAL : Indispensable dans Docker pour éviter les "Database is locked"
         db.run("PRAGMA journal_mode = WAL;");
-        console.log('✅ DB connectée sur:', dbPath);
+        console.log('✅ DB connectée avec succès sur:', dbPath);
     }
 });
 
